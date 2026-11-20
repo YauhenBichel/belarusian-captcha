@@ -9,3 +9,6 @@ coverage/
 bc-keys*.json
 keys.json
 sites.yaml
+# Playwright output
+e2e/test-results/
+playwright-report/
