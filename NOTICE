@@ -1,0 +1,21 @@
+belarusian-captcha
+Copyright 2026 Yauhen Bichel
+
+The CODE in this repository is licensed under the Apache License, Version 2.0
+(see LICENSE).
+
+The CONTENT (proverbs, words, picture labels and their review records under
+content/items/, and the content pack built from them) is licensed under the
+Creative Commons Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0),
+https://creativecommons.org/licenses/by-sa/4.0/ . Each item records its own
+source and licence; an item without them is not shipped. The code is not a
+derivative of the content.
+
+Fonts shipped in the image will be under the SIL Open Font License 1.1 and are
+listed here when they are added.
+
+Proof-of-work compatibility:
+  The proof-of-work format is wire-compatible with ALTCHA's SHA-256 scheme
+  (https://altcha.org, https://github.com/altcha-org/altcha-lib, MIT licence).
+  The implementation here is independent; altcha-lib is used only as a
+  development dependency, in tests, to prove compatibility.

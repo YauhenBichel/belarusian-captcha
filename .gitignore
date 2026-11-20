@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.DS_Store
+# keys and site secrets never go in the repository
+bc-keys*.json
+sites.yaml
