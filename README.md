@@ -5,8 +5,8 @@ distorted word, or pick the picture for a word, each backed by an invisible proo
 
 **Капча па-беларуску:** дакончы прыказку, перапішы слова, выберы малюнак.
 
-Status: **phase 1 in progress**: the shared protocol library and the verify API server exist; the
-widget, SDKs, Docker image and reviewed content do not yet. The design is in
+Status: **phase 1 in progress**: the shared protocol library, the verify API server and its Docker
+image exist; the widget, SDKs and reviewed content do not yet. The design is in
 [`docs/DESIGN.md`](docs/DESIGN.md); there is no released code yet.
 
 | Package | What it is |
@@ -36,6 +36,37 @@ node -e 'console.log(JSON.stringify({active:"k1",keys:{k1:require("crypto").rand
 cd server && BC_SITES=sites.example.yaml BC_KEYS_FILE=../keys.json \
   BC_PACK=test/fixtures/synthetic-pack.json BC_STORE=sqlite:../bc.sqlite node dist/main.js
 ```
+
+## Run with Docker
+
+The image `ghcr.io/yauhenbichel/belarusian-captcha-server` (linux/amd64 and linux/arm64) holds the
+server only. Sites, keys and the content pack are mounted, never built in; the SQLite spent store
+lives on the `/data` volume. The process runs as uid 65532, so mounted files must be readable by it.
+
+```bash
+docker run -d --name bc --read-only --cap-drop ALL --security-opt no-new-privileges \
+  -p 8080:8080 \
+  -p 127.0.0.1:9464:9464 \
+  -v "$PWD/sites.yaml:/etc/bc/sites.yaml:ro" \
+  -v "$PWD/bc-keys.json:/run/secrets/bc-keys.json:ro" \
+  -v "$PWD/pack.json:/etc/bc/pack.json:ro" \
+  -v bc-data:/data \
+  -e BC_TRUST_PROXY=1 \
+  ghcr.io/yauhenbichel/belarusian-captcha-server:<version>
+docker stop -t 30 bc   # SIGTERM: drains in-flight requests (BC_SHUTDOWN_TIMEOUT_MS, 10 s), exits 0
+```
+
+| Port | What | Publish it? |
+| --- | --- | --- |
+| 8080 | the API and `GET /healthz` (the image's `HEALTHCHECK`) | yes, behind your TLS proxy |
+| 9464 | Prometheus `GET /metrics` | no: keep it on the host or the internal network |
+
+The image sets `BC_SITES`, `BC_KEYS_FILE`, `BC_PACK` and `BC_STORE` to the paths above and binds
+metrics to `0.0.0.0` inside the container; every variable in
+[`server/src/main.ts`](server/src/main.ts) can be overridden with `-e`. Set `BC_TRUST_PROXY` to
+match your proxy (the example trusts one hop). Build it yourself with `docker build -t
+belarusian-captcha-server .` at the repository root; `scripts/docker-smoke.sh <image>` runs the
+same smoke test as CI.
 
 ## Licence
 
