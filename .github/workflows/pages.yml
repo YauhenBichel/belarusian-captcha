@@ -1,0 +1,65 @@
+name: Demo site (GitHub Pages)
+
+# Builds the static demo (demo/ and the widget) and publishes it to GitHub Pages.
+# The repository's Pages source must be "GitHub Actions" (see demo/README.md).
+# Optional repository variables: BC_DEMO_API, BC_DEMO_SITEKEY, BC_DEMO_SITE_URL.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "demo/**"
+      - "widget/**"
+      - "shared/src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build the demo site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install (from the lock file only)
+        run: npm ci
+      - name: Build the widget and the demo
+        run: npm run build:demo
+        env:
+          BC_DEMO_API: ${{ vars.BC_DEMO_API }}
+          BC_DEMO_SITEKEY: ${{ vars.BC_DEMO_SITEKEY }}
+          BC_DEMO_SITE_URL: ${{ vars.BC_DEMO_SITE_URL }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: demo/dist
+          include-hidden-files: true
+
+  deploy:
+    name: publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,15 @@
+# Site file for the Playwright end-to-end tests only (e2e/). Not a deployment example: see
+# server/sites.example.yaml for that.
+#
+# The secret is a fixed, low-entropy test value, "e2e-test-secret-not-real"; secret_sha256 is its
+# SHA-256. It protects nothing and must never be used outside these tests.
+sites:
+  - sitekey: e2e-sitekey-0001
+    secret_sha256: "5079a776fc6c7e3250820fbfe1c00f5fc7396f0d551913d7f2bb05b10b274e7f"
+    # The demo is served on http://127.0.0.1:4173 during the tests (plain http: loopback only).
+    hostnames: ["127.0.0.1:4173"]
+    types: { proverb: 1 }
+    # A small PoW and generous rates keep the run fast and keep a wrong answer from raising the
+    # level much; the protocol is the same as in production.
+    pow: { base: 2000, max_level: 2 }
+    rate: { r0_per_min: 1000, hard_per_min: 1000, siteverify_per_min: 1000 }

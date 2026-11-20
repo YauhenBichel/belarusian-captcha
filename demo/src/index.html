@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; worker-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'self'; object-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>belarusian-captcha demo: a self-hosted CAPTCHA in Belarusian with proof-of-work</title>
+  <meta name="description" content="Try belarusian-captcha, an open-source, self-hosted, privacy-friendly CAPTCHA in Belarusian: finish a proverb, backed by an invisible ALTCHA-compatible proof-of-work. Apache-2.0, Docker image, no tracking.">
+  <link rel="canonical" href="__SITE_URL__">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0b57d0">
+  <!-- Build-time defaults (demo/build.mjs); ?api= and ?sitekey= override them. -->
+  <meta name="bc-demo-api" content="__API__">
+  <meta name="bc-demo-sitekey" content="__SITEKEY__">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="belarusian-captcha">
+  <meta property="og:title" content="belarusian-captcha: a self-hosted CAPTCHA in Belarusian">
+  <meta property="og:description" content="An open-source, privacy-friendly CAPTCHA in Belarusian with an invisible proof-of-work. Try the widget live.">
+  <meta property="og:url" content="__SITE_URL__">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:locale:alternate" content="be_BY">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="belarusian-captcha: a self-hosted CAPTCHA in Belarusian">
+  <meta name="twitter:description" content="An open-source, privacy-friendly CAPTCHA in Belarusian with an invisible proof-of-work. Try the widget live.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "belarusian-captcha",
+    "description": "A self-hosted, privacy-friendly CAPTCHA in Belarusian for any web site, backed by an invisible ALTCHA-compatible proof-of-work.",
+    "url": "__SITE_URL__",
+    "applicationCategory": "SecurityApplication",
+    "applicationSubCategory": "CAPTCHA",
+    "operatingSystem": "Any (web browser widget); server: Docker, Node.js 24",
+    "inLanguage": ["be", "en"],
+    "isAccessibleForFree": true,
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "sameAs": "https://github.com/YauhenBichel/belarusian-captcha",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+  }
+  </script>
+
+  <link rel="stylesheet" href="demo.css">
+  <script src="widget.js" defer></script>
+  <script src="demo.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#try">Skip to the demo</a>
+  <header>
+    <h1>belarusian-captcha</h1>
+    <p class="lead">A self-hosted, privacy-friendly CAPTCHA in Belarusian, for any web site: finish a
+      proverb, backed by an invisible proof-of-work check.</p>
+    <p lang="be">Капча па-беларуску: дакончы прыказку, перапішы слова, выберы малюнак.</p>
+  </header>
+
+  <main>
+    <section id="api-status" class="banner" data-state="checking" aria-live="polite">
+      <p><strong>API:</strong> <span id="api-status-text">checking <code id="api-url">__API__</code>…</span></p>
+    </section>
+
+    <section id="try" aria-labelledby="try-title">
+      <h2 id="try-title">Try it</h2>
+      <p class="note"><strong>Synthetic content.</strong> The questions on this page come from the
+        repository's SYNTHETIC test pack: placeholder text, not Belarusian proverbs. Reviewed proverbs
+        come from the content pipeline and native-speaker review.</p>
+      <form id="demo-form" action="#" method="post">
+        <label for="comment">A comment (not sent anywhere)</label>
+        <textarea id="comment" name="comment" rows="2"></textarea>
+        <div id="captcha"></div>
+        <button type="submit">Submit</button>
+      </form>
+      <div id="submit-result" role="status" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="sees-title">
+      <h2 id="sees-title">What the server sees</h2>
+      <p>The widget's events: the sealed challenge (opaque to the browser), the proof-of-work size,
+        and the signed pass token. A site's backend sends the token to
+        <code>POST /api/v1/siteverify</code> with its secret key; a static page cannot, because it
+        holds no secret.</p>
+      <ol id="events" class="events"></ol>
+    </section>
+
+    <section aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <form id="settings" method="get" action="">
+        <div class="row">
+          <label for="set-api">API base URL</label>
+          <input id="set-api" name="api" type="url" inputmode="url" spellcheck="false" required>
+        </div>
+        <div class="row">
+          <label for="set-sitekey">Site key</label>
+          <input id="set-sitekey" name="sitekey" type="text" spellcheck="false" required>
+        </div>
+        <div class="row">
+          <label for="set-lang">Interface language</label>
+          <select id="set-lang" name="lang">
+            <option value="en">English (en)</option>
+            <option value="be">Belarusian (be)</option>
+            <option value="be-Latn">Belarusian, Łacinka (be-Latn)</option>
+            <option value="ru">Russian (ru)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="set-theme">Theme</label>
+          <select id="set-theme" name="theme">
+            <option value="auto">auto</option>
+            <option value="light">light</option>
+            <option value="dark">dark</option>
+          </select>
+        </div>
+        <button type="submit">Apply</button>
+      </form>
+      <p class="hint">Settings travel in the address, e.g.
+        <code>?api=http://localhost:8080&amp;sitekey=example-sitekey-0001&amp;lang=en</code>. The API must
+        list this page's origin in the site's <code>hostnames</code>.</p>
+    </section>
+
+    <section aria-labelledby="embed-title">
+      <h2 id="embed-title">Embed it</h2>
+<pre><code>&lt;script src="https://captcha.example.org/widget.js" async defer&gt;&lt;/script&gt;
+&lt;form method="post" action="/comment"&gt;
+  &lt;div class="belarusian-captcha" data-sitekey="your-site-key"&gt;&lt;/div&gt;
+  &lt;button&gt;Send&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+      <p>Your backend then checks the hidden <code>bc-response</code> field with
+        <code>POST /api/v1/siteverify</code>. Run the API yourself with the Docker image; see the
+        <a href="https://github.com/YauhenBichel/belarusian-captcha#readme">README</a> and the
+        <a href="https://github.com/YauhenBichel/belarusian-captcha/blob/main/docs/DESIGN.md">design</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>belarusian-captcha is open source:
+      <a href="https://github.com/YauhenBichel/belarusian-captcha">github.com/YauhenBichel/belarusian-captcha</a>.
+      Code Apache-2.0; content CC BY-SA 4.0. This page sets no cookies and loads nothing from third parties.</p>
+  </footer>
+</body>
+</html>

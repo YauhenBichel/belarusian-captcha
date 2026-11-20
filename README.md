@@ -14,6 +14,7 @@ image and the browser widget exist; the SDKs and reviewed content do not yet. Th
 | [`shared/`](shared) | ALTCHA-compatible SHA-256 proof-of-work, sealed challenges, pass tokens, the answer normaliser. WebCrypto only, so the widget can reuse it. |
 | [`server/`](server) | The verify API: `GET /api/v1/challenge`, `POST /api/v1/solve`, `POST /api/v1/siteverify`, `/healthz`, and `/metrics` on a separate port. SQLite spent store, rate levels. |
 | [`widget/`](widget) | The browser widget: vanilla TypeScript, Shadow DOM, PoW in a Web Worker, `data-sitekey` embed; 5.7 kB gzipped. |
+| [`demo/`](demo) | The static demo page (GitHub Pages) and the Playwright end-to-end tests in [`e2e/`](e2e). |
 
 The only content in the repository is **synthetic test data**
 ([`server/test/fixtures/synthetic-pack.json`](server/test/fixtures/synthetic-pack.json)); the
@@ -26,6 +27,14 @@ Node 24 (see `.nvmrc`). One npm workspace root; every package's tests run from t
 ```bash
 npm ci
 npm run check   # lint (Biome), type-check (tsc -b), unit tests (Vitest), widget build + size budget
+```
+
+The demo page and the end-to-end tests (Playwright starts the API and the demo itself):
+
+```bash
+npm run build && npm run build:demo
+npx playwright install chromium   # once
+npm run e2e
 ```
 
 Run the server locally (see [`server/src/main.ts`](server/src/main.ts) for every variable and
