@@ -5,14 +5,15 @@ distorted word, or pick the picture for a word, each backed by an invisible proo
 
 **Капча па-беларуску:** дакончы прыказку, перапішы слова, выберы малюнак.
 
-Status: **phase 1 in progress**: the shared protocol library, the verify API server and its Docker
-image exist; the widget, SDKs and reviewed content do not yet. The design is in
+Status: **phase 1 in progress**: the shared protocol library, the verify API server, its Docker
+image and the browser widget exist; the SDKs and reviewed content do not yet. The design is in
 [`docs/DESIGN.md`](docs/DESIGN.md); there is no released code yet.
 
 | Package | What it is |
 | --- | --- |
 | [`shared/`](shared) | ALTCHA-compatible SHA-256 proof-of-work, sealed challenges, pass tokens, the answer normaliser. WebCrypto only, so the widget can reuse it. |
 | [`server/`](server) | The verify API: `GET /api/v1/challenge`, `POST /api/v1/solve`, `POST /api/v1/siteverify`, `/healthz`, and `/metrics` on a separate port. SQLite spent store, rate levels. |
+| [`widget/`](widget) | The browser widget: vanilla TypeScript, Shadow DOM, PoW in a Web Worker, `data-sitekey` embed; 5.7 kB gzipped. |
 
 The only content in the repository is **synthetic test data**
 ([`server/test/fixtures/synthetic-pack.json`](server/test/fixtures/synthetic-pack.json)); the
@@ -24,7 +25,7 @@ Node 24 (see `.nvmrc`). One npm workspace root; every package's tests run from t
 
 ```bash
 npm ci
-npm run check   # lint (Biome), type-check (tsc -b), unit tests (Vitest)
+npm run check   # lint (Biome), type-check (tsc -b), unit tests (Vitest), widget build + size budget
 ```
 
 Run the server locally (see [`server/src/main.ts`](server/src/main.ts) for every variable and

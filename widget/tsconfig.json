@@ -1,0 +1,16 @@
+{
+  "//": "tsc type-checks the widget and emits its declarations; esbuild (build.mjs) emits the JavaScript.",
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist/types",
+    "tsBuildInfoFile": "dist/types/.tsbuildinfo",
+    "emitDeclarationOnly": true,
+    "resolveJsonModule": true,
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "types": []
+  },
+  "include": ["src", "src/i18n/*.json"],
+  "exclude": ["src/**/*.test.ts", "src/test-helpers.ts"],
+  "references": [{ "path": "../shared" }]
+}

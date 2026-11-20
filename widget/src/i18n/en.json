@@ -1,0 +1,13 @@
+{
+  "label": "Human check",
+  "instruction": "Choose the right ending of the saying.",
+  "loading": "Loading the question…",
+  "checking": "Checking…",
+  "done": "Done",
+  "wrong": "Not quite. Here is a new question.",
+  "expired": "The check expired. Here is a new question.",
+  "unreachable": "The CAPTCHA service cannot be reached. Try again later.",
+  "rateLimited": "Too many attempts. Wait a minute and try again.",
+  "failed": "The check could not be completed.",
+  "retry": "Try again"
+}

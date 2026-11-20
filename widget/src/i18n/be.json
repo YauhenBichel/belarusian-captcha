@@ -1,0 +1,6 @@
+{
+  "_note": "Only the three status strings quoted in docs/DESIGN.md section 6.2, copied verbatim. Every other key falls back to en until a native speaker writes and reviews it (D5).",
+  "checking": "Правяраем…",
+  "done": "Гатова",
+  "wrong": "Не тое, вось новае пытанне"
+}
