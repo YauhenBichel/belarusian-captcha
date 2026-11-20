@@ -1,0 +1,16 @@
+# Only what the Dockerfile copies is needed; keep everything else, above all keys, site files and
+# databases, out of the build context.
+**
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!shared/package.json
+!shared/tsconfig.json
+!shared/src/**
+!server/package.json
+!server/tsconfig.json
+!server/src/**
+!LICENSE
+!NOTICE
+**/*.test.ts
+**/test-helpers.ts

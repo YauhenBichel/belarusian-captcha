@@ -34,6 +34,21 @@ jobs:
       - name: Unit tests
         run: npm test
 
+  image:
+    name: server image (build and smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the image (not pushed)
+        run: docker build --pull -t belarusian-captcha-server:ci .
+      - name: Smoke test (health, metrics, SIGTERM drain and exit code)
+        run: scripts/docker-smoke.sh belarusian-captcha-server:ci
+      - name: Image size
+        run: docker image ls belarusian-captcha-server:ci
+
   pinned-actions:
     name: actions pinned by commit SHA
     runs-on: ubuntu-latest
