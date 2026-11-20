@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildProverbChallenge, pickDistractors, pickItems } from '../src/challenge.js';
-import { ConfigError, originHostname, parseSites } from '../src/config.js';
+import { ConfigError, entryHost, matchOrigin, parseSites } from '../src/config.js';
 import { parseTrustProxy } from '../src/main.js';
 import { PackError, parsePack } from '../src/pack.js';
 import { ipPrefix, powMaxNumber, RateLimiter } from '../src/rate.js';
@@ -22,7 +22,7 @@ describe('parseSites', () => {
     const s = sites.get('example-0001');
     expect(s?.hostnames).toEqual(['example.org']);
     expect(s?.pow).toEqual({ base: 50_000, maxLevel: 6 });
-    expect(s?.rate).toEqual({ r0PerMin: 10, hardPerMin: 120 });
+    expect(s?.rate).toEqual({ r0PerMin: 10, hardPerMin: 120, siteverifyPerMin: 600 });
     expect(s?.tokenTtlS).toBe(300);
     expect(s?.challengeTtlS).toBe(600);
     expect(s?.secretSha256).toHaveLength(32);
@@ -38,6 +38,22 @@ describe('parseSites', () => {
     [
       `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: ["http://a.org"]`,
       /hostnames/,
+    ],
+    [
+      `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: ["a.org:0"]`,
+      /hostnames/,
+    ],
+    [
+      `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: ["a.org:70000"]`,
+      /hostnames/,
+    ],
+    [
+      `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: ["a.org:"]`,
+      /hostnames/,
+    ],
+    [
+      `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: [a.org]\n    rate: { siteverify_per_min: 0 }`,
+      /siteverify_per_min/,
     ],
     [
       `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: [a.org]\n    types: { image: 1 }`,
@@ -67,10 +83,21 @@ describe('parseSites', () => {
   });
 
   it('reads origins', () => {
-    expect(originHostname('https://Site-A.test:8443')).toBe('site-a.test');
-    expect(originHostname('null')).toBeUndefined();
-    expect(originHostname('file:///x')).toBeUndefined();
-    expect(originHostname(undefined)).toBeUndefined();
+    expect(matchOrigin('https://Site-A.test:8443', ['site-a.test:8443'])).toBe('site-a.test');
+    expect(matchOrigin('https://Site-A.test:8443', ['site-a.test'])).toBeUndefined();
+    expect(matchOrigin('null', ['site-a.test'])).toBeUndefined();
+    expect(matchOrigin('file:///x', ['site-a.test'])).toBeUndefined();
+    expect(matchOrigin(undefined, ['site-a.test'])).toBeUndefined();
+  });
+
+  it('reads host:port entries', () => {
+    const sites = parseSites(
+      `sites:\n  - sitekey: example-0001\n    secret_sha256: "${HASH}"\n    hostnames: [a.org, "Local.Localhost:5173"]\n    rate: { siteverify_per_min: 30 }\n`,
+    );
+    const s = sites.get('example-0001');
+    expect(s?.hostnames).toEqual(['a.org', 'local.localhost:5173']);
+    expect(s?.hostnames.map(entryHost)).toEqual(['a.org', 'local.localhost']);
+    expect(s?.rate.siteverifyPerMin).toBe(30);
   });
 });
 
@@ -180,7 +207,7 @@ describe('rate levels', () => {
   it('follows level = floor(log2(r / r0)) + f + s, capped at max_level', async () => {
     const clock = new Clock();
     const s = await site({
-      rate: { r0PerMin: 2, hardPerMin: 1000 },
+      rate: { r0PerMin: 2, hardPerMin: 1000, siteverifyPerMin: 600 },
       pow: { base: 50, maxLevel: 3 },
     });
     const r = new RateLimiter({ now: clock.now });
@@ -200,7 +227,7 @@ describe('rate levels', () => {
 
   it('limits over the hard limit per bucket', async () => {
     const clock = new Clock();
-    const s = await site({ rate: { r0PerMin: 10, hardPerMin: 5 } });
+    const s = await site({ rate: { r0PerMin: 10, hardPerMin: 5, siteverifyPerMin: 600 } });
     const r = new RateLimiter({ now: clock.now });
     for (let i = 0; i < 5; i++) expect(r.hit(s, 'b').limited).toBe(false);
     expect(r.hit(s, 'b').limited).toBe(true);
@@ -211,7 +238,7 @@ describe('rate levels', () => {
 
   it('adds a site-wide surge level', async () => {
     const clock = new Clock();
-    const s = await site({ rate: { r0PerMin: 1, hardPerMin: 1000 } });
+    const s = await site({ rate: { r0PerMin: 1, hardPerMin: 1000, siteverifyPerMin: 600 } });
     const r = new RateLimiter({ now: clock.now });
     // Baseline floor is 2 x r0 = 2/min; more than 8 requests in a minute is a surge (s = 1),
     // more than 32 is s = 2. Spread over buckets so the per-bucket term stays 0.

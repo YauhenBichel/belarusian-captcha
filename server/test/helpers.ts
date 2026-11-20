@@ -35,7 +35,7 @@ export async function site(overrides: Partial<SiteConfig> = {}): Promise<SiteCon
     script: 'cyrl',
     // Far below the production minimum (1000), so tests solve the proof-of-work quickly.
     pow: { base: 50, maxLevel: 6 },
-    rate: { r0PerMin: 10, hardPerMin: 120 },
+    rate: { r0PerMin: 10, hardPerMin: 120, siteverifyPerMin: 600 },
     tokenTtlS: 300,
     challengeTtlS: 600,
     ...overrides,
@@ -62,14 +62,20 @@ export interface Harness {
 }
 
 export async function harness(
-  opts: { sites?: SiteConfig[]; store?: SpentStore; pack?: ContentPack } = {},
+  opts: {
+    sites?: SiteConfig[];
+    store?: SpentStore;
+    pack?: ContentPack;
+    ring?: KeyRing;
+    clock?: Clock;
+  } = {},
 ): Promise<Harness> {
-  const clock = new Clock();
+  const clock = opts.clock ?? new Clock();
   const logs: string[] = [];
   const sites = opts.sites ?? [await site()];
   const deps: AppDeps = {
     sites: new Map(sites.map((s) => [s.sitekey, s])),
-    ring: testRing(),
+    ring: opts.ring ?? testRing(),
     store: opts.store ?? new SqliteSpentStore(':memory:'),
     pack: opts.pack ?? PACK,
     limiter: new RateLimiter({ now: clock.now }),
@@ -86,10 +92,11 @@ export async function getChallenge(
   sitekey = 'sitekey-aaaa',
   origin = ORIGIN,
   remoteAddress = '203.0.113.7',
+  query = '',
 ) {
   return h.app.inject({
     method: 'GET',
-    url: `/api/v1/challenge?sitekey=${sitekey}`,
+    url: `/api/v1/challenge?sitekey=${sitekey}${query}`,
     headers: { origin },
     remoteAddress,
   });
@@ -144,10 +151,15 @@ export async function solve(
   });
 }
 
-export async function siteverify(h: Harness, response: string, secret = SECRET) {
+export async function siteverify(
+  h: Harness,
+  response: string,
+  secret = SECRET,
+  extra: Record<string, string> = {},
+) {
   return h.app.inject({
     method: 'POST',
     url: '/api/v1/siteverify',
-    payload: { secret, response },
+    payload: { secret, response, ...extra },
   });
 }

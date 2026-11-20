@@ -14,5 +14,14 @@ export default defineConfig({
   test: {
     include: ['**/src/**/*.test.ts', '**/test/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
+    // `npm run coverage`: v8 coverage of the package sources. The floor sits a little below
+    // today's numbers, so a change that drops tested code fails while ordinary edits do not.
+    coverage: {
+      provider: 'v8',
+      include: ['shared/src/**/*.ts', 'server/src/**/*.ts'],
+      exclude: ['**/*.test.ts', '**/test-helpers.ts'],
+      reporter: ['text', 'json-summary'],
+      thresholds: { lines: 85, statements: 82, functions: 80, branches: 75 },
+    },
   },
 });

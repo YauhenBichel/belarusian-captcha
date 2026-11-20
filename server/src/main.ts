@@ -9,18 +9,23 @@
 //   BC_METRICS_PORT/BC_METRICS_HOST                 (default 9464 on 127.0.0.1; port 0 = off)
 //   BC_LOG_LEVEL      pino level                    (default info)
 //   BC_TRUST_PROXY    "true", a hop count, or a comma-separated list of proxy addresses
+//   BC_SHUTDOWN_TIMEOUT_MS  how long SIGTERM/SIGINT wait for in-flight requests (default 10000;
+//                     keep it below the pod's terminationGracePeriodSeconds, 30 s by default)
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
+import { fileURLToPath } from 'node:url';
 import { KeyRing } from '@belarusian-captcha/shared';
+import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { parseSites } from './config.js';
 import { createMetrics } from './metrics.js';
 import { parsePack } from './pack.js';
 import { RateLimiter } from './rate.js';
-import { openStore } from './store.js';
+import { openStore, type SpentStore } from './store.js';
 
 const SWEEP_MS = 60_000;
+export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 
 export function parseTrustProxy(v: string | undefined): boolean | number | string[] {
   if (!v || v === 'false') return false;
@@ -32,10 +37,60 @@ export function parseTrustProxy(v: string | undefined): boolean | number | strin
     .filter(Boolean);
 }
 
+export interface Running {
+  app: FastifyInstance;
+  store: SpentStore;
+  metricsServer?: Server | undefined;
+  timer?: NodeJS.Timeout | undefined;
+}
+
+/**
+ * Stops taking new connections and waits up to `timeoutMs` for in-flight requests to finish
+ * (Fastify's close() drains them; keep-alive sockets are closed as they turn idle). After the timeout
+ * the remaining connections are cut. Returns 'drained' or 'timeout'; the caller picks the exit code.
+ */
+export async function drain(r: Running, timeoutMs: number): Promise<'drained' | 'timeout'> {
+  if (r.timer) clearInterval(r.timer);
+  r.metricsServer?.close();
+  r.metricsServer?.closeAllConnections();
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => resolve('timeout'), timeoutMs);
+    timer.unref();
+  });
+  // server.close() closes the sockets that are idle when it starts; a keep-alive socket whose
+  // request finishes later would hold the close open until its keep-alive timeout, so idle
+  // sockets are closed again while draining.
+  const reaper = setInterval(() => r.app.server.closeIdleConnections(), 50);
+  const result = await Promise.race([r.app.close().then(() => 'drained' as const), timedOut]);
+  clearInterval(reaper);
+  clearTimeout(timer);
+  if (result === 'timeout') r.app.server.closeAllConnections();
+  r.store.close();
+  return result;
+}
+
+/** True when this module is the process entry point, through symlinks and relative paths. */
+export function isEntryPoint(moduleUrl: string, argv1: string | undefined): boolean {
+  if (!argv1) return false;
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(argv1);
+  } catch {
+    return false;
+  }
+}
+
 function port(v: string | undefined, def: number, name: string): number {
   if (v === undefined || v === '') return def;
   const n = Number(v);
   if (!Number.isInteger(n) || n < 0 || n > 65535) throw new Error(`${name} must be a port number`);
+  return n;
+}
+
+function positiveInt(v: string | undefined, def: number, name: string): number {
+  if (v === undefined || v === '') return def;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1) throw new Error(`${name} must be a positive integer`);
   return n;
 }
 
@@ -46,6 +101,11 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
   const ring = KeyRing.fromJson(keysJson);
   if (!env.BC_PACK) throw new Error('BC_PACK is required');
   const pack = parsePack(readFileSync(env.BC_PACK, 'utf8'));
+  const shutdownTimeoutMs = positiveInt(
+    env.BC_SHUTDOWN_TIMEOUT_MS,
+    DEFAULT_SHUTDOWN_TIMEOUT_MS,
+    'BC_SHUTDOWN_TIMEOUT_MS',
+  );
   const store = openStore(env.BC_STORE ?? 'sqlite:/data/bc.sqlite');
   const metrics = createMetrics({ defaults: true });
   const limiter = new RateLimiter({ now: Date.now });
@@ -80,7 +140,16 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
         () => res.writeHead(500).end(),
       );
     });
-    metricsServer.listen(metricsPort, env.BC_METRICS_HOST ?? '127.0.0.1');
+    // A metrics port that cannot be bound stops the start; a later error is logged, not thrown.
+    const ms = metricsServer;
+    await new Promise<void>((resolve, reject) => {
+      ms.once('error', reject);
+      ms.listen(metricsPort, env.BC_METRICS_HOST ?? '127.0.0.1', () => {
+        ms.off('error', reject);
+        resolve();
+      });
+    });
+    ms.on('error', (err) => app.log.error({ err: String(err) }, 'metrics server error'));
   }
 
   await app.listen({ port: port(env.BC_PORT, 8080, 'BC_PORT'), host: env.BC_HOST ?? '0.0.0.0' });
@@ -89,19 +158,37 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
     'belarusian-captcha server started',
   );
 
+  let stopping = false;
   const shutdown = async (signal: string) => {
-    app.log.info({ signal }, 'shutting down');
-    clearInterval(timer);
-    metricsServer?.close();
-    await app.close();
-    store.close();
-    process.exit(0);
+    if (stopping) {
+      // A second signal while draining: stop now.
+      app.log.warn({ signal }, 'second signal, exiting without waiting');
+      process.exit(1);
+    }
+    stopping = true;
+    app.log.info({ signal, timeoutMs: shutdownTimeoutMs }, 'shutting down, draining requests');
+    try {
+      const result = await drain({ app, store, metricsServer, timer }, shutdownTimeoutMs);
+      if (result === 'timeout') app.log.warn('drain timed out; open connections were cut');
+      process.exit(result === 'drained' ? 0 : 1);
+    } catch (err) {
+      app.log.error({ err: String(err) }, 'shutdown failed');
+      process.exit(1);
+    }
   };
-  process.once('SIGTERM', () => void shutdown('SIGTERM'));
-  process.once('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isEntryPoint(import.meta.url, process.argv[1])) {
+  // A promise nobody awaited failed: the process state is unknown, so log it and exit non-zero
+  // (the orchestrator restarts the pod) rather than keep serving.
+  process.on('unhandledRejection', (reason: unknown) => {
+    console.error(
+      `belarusian-captcha: unhandled rejection: ${reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)}`,
+    );
+    process.exit(1);
+  });
   main().catch((err: unknown) => {
     // Configuration errors name the setting; they never contain key material.
     console.error(`belarusian-captcha: cannot start: ${err instanceof Error ? err.message : err}`);

@@ -539,14 +539,15 @@ Redis: the key's TTL). At 100 solves a minute that is a few thousand rows.
 |---|---|---|---|
 | `GET /api/v1/challenge` | widget | `sitekey`, `lang` (`be`, `be-Latn`, `ru`, `en`: UI only), `script` (`cyrl`, `latn`), `types` (optional subset) | `{sealed, type, display, pow, expires}`; `display` is `{prompt, options:[{id,text}]}`, `{image, inputmode}` or `{word, options:[{id,image}]}` |
 | `POST /api/v1/solve` | widget | `{sealed, answer, pow}` (`answer` is an option id, two ids, or text) | `200 {token, expires}` or `422 {error, next}` with a new challenge |
-| `POST /api/v1/siteverify` | site backend | form or JSON `{secret, response, remoteip?, sitekey?}` | `{success, challenge_ts, hostname, score, action, "error-codes": []}` (reCAPTCHA-shaped) |
+| `POST /api/v1/siteverify` | site backend | form or JSON `{secret, response, remoteip?, sitekey?, action?}` (`action`, if sent, must equal the token's) | `{success, challenge_ts, hostname, score, action, "error-codes": []}` (reCAPTCHA-shaped) |
 | `GET /api/v1/fallback` | widget | `sitekey` | the accessible alternative (section 6.3), once D3 is decided |
 | `GET /widget.js`, `/widget.worker.js` | browser | | the widget, with `Cache-Control` and published SRI hashes |
 | `GET /healthz` | operator | | `{ok, pack_version, store}` |
 | `GET /metrics` | operator, bound to a separate port | | Prometheus text |
 
 Errors use stable codes: `invalid-sitekey`, `invalid-secret`, `invalid-input-response`,
-`timeout-or-duplicate`, `hostname-mismatch`, `rate-limited`, `bad-pow`, `wrong-answer`.
+`timeout-or-duplicate`, `hostname-mismatch`, `rate-limited`, `bad-pow`, `wrong-answer`,
+`action-mismatch` (siteverify only).
 
 **CORS**: `challenge` and `solve` answer only the origins listed for the site key; `siteverify`
 sends no CORS headers (server-to-server only).

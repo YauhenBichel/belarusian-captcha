@@ -168,6 +168,20 @@ export class RateLimiter {
     return { limited: r > site.rate.hardPerMin, level, r, f, s };
   }
 
+  /**
+   * A plain per-minute limit for one key in one scope (siteverify: scope "siteverify", key the
+   * site key, so the limit is per secret key). Shares the bucket map, so it is capped and swept
+   * like the challenge buckets. True when this call is over `perMin`.
+   */
+  overLimit(scope: string, key: string, perMin: number): boolean {
+    const now = this.#now();
+    const b = this.#bucket(`${scope}:`, key);
+    b.requests = b.requests.filter((t) => t > now - MINUTE);
+    if (b.requests.length >= perMin) return true;
+    b.requests.push(now);
+    return false;
+  }
+
   /** A wrong answer or a bad proof-of-work from this bucket. */
   fail(site: SiteConfig, bucket: string): void {
     this.#bucket(site.sitekey, bucket).fails.push(this.#now());

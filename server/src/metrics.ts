@@ -12,10 +12,21 @@ export interface Metrics {
   solveSeconds: Histogram<'site' | 'type'>;
   renderSeconds: Histogram<'type'>;
   itemAnswers: Counter<'item' | 'result'>;
+  /**
+   * The `item` label for an item id: the id itself for the first `maxItemLabels` distinct ids,
+   * then "other". Keeps bc_item_answers_total bounded however large the pack grows, while the
+   * design's per-item wrong-answer rate (section 11) stays available for a pack of normal size.
+   */
+  itemLabel(item: string): string;
 }
 
-export function createMetrics(opts: { defaults?: boolean } = {}): Metrics {
+/** Default cap on distinct `item` label values (two results each, so twice as many series). */
+export const MAX_ITEM_LABELS = 500;
+
+export function createMetrics(opts: { defaults?: boolean; maxItemLabels?: number } = {}): Metrics {
   const registry = new Registry();
+  const maxItemLabels = opts.maxItemLabels ?? MAX_ITEM_LABELS;
+  const labelled = new Set<string>();
   if (opts.defaults) collectDefaultMetrics({ register: registry, prefix: 'bc_' });
   const registers = [registry];
   return {
@@ -67,9 +78,15 @@ export function createMetrics(opts: { defaults?: boolean } = {}): Metrics {
     }),
     itemAnswers: new Counter({
       name: 'bc_item_answers_total',
-      help: 'Answers per content item (right or wrong-answer), to retire items people fail',
+      help: `Answers per content item (right or wrong-answer), to retire items people fail; item="other" past ${maxItemLabels} distinct items`,
       labelNames: ['item', 'result'],
       registers,
     }),
+    itemLabel(item: string): string {
+      if (labelled.has(item)) return item;
+      if (labelled.size >= maxItemLabels) return 'other';
+      labelled.add(item);
+      return item;
+    },
   };
 }
