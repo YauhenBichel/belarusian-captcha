@@ -15,6 +15,7 @@
     "server/test/**/*.ts",
     "scripts/**/*.ts",
     "widget/src/**/*.ts",
-    "widget/src/i18n/*.json"
+    "widget/src/i18n/*.json",
+    "e2e/**/*.ts"
   ]
 }

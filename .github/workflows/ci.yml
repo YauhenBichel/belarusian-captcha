@@ -44,6 +44,36 @@ jobs:
             node -e 'const r=require("./widget/dist/sri.json");for(const[f,v]of Object.entries(r))console.log(`| ${f} | ${v.bytes} | ${v.gzip} | ${v.budget} |`)'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  e2e:
+    name: "e2e: demo page and verify API (Playwright, Chromium)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install (from the lock file only)
+        run: npm ci
+      - name: Build the server, the widget and the demo
+        run: |
+          npm run build
+          npm run build:demo
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run e2e
+      - name: Upload the Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: playwright-test-results
+          path: e2e/test-results/
+          retention-days: 7
+
   image:
     name: server image (build and smoke test)
     runs-on: ubuntu-latest

@@ -748,6 +748,12 @@ keyboard only, token reaches the demo backend, `siteverify` accepts once and ref
 light and dark; the four UI languages; an axe-core accessibility scan with zero violations; a
 Firefox, Chromium and WebKit matrix.
 
+**[done in part]** `e2e/demo.spec.ts` runs in CI (the `e2e` job): the verify API from source with the
+SYNTHETIC pack and the built demo page, in Chromium only. It covers load, PoW in the Web Worker,
+answer by mouse and by keyboard only, `siteverify` accepting once and refusing a replay, a wrong
+answer refused, and an unreachable API said plainly. Not yet: themes, languages, axe-core, the
+Firefox and WebKit matrix, and the container instead of the source build.
+
 ### 8.3 The bot-resistance benchmark (the acceptance metric)
 
 `bench/` runs solvers against a running API and reports, per challenge type and level, the share
@@ -780,8 +786,9 @@ content pipeline checks, build the widget and check its size budget, build the i
 by default. `release.yml` runs when a `v*.*.*` tag is pushed: it checks the tag is semver, smoke-tests the
 amd64 image, pushes amd64 and arm64 images with provenance and an SBOM (`:latest` only for
 non-pre-release tags), then creates the GitHub release. GitHub creates the GHCR package as
-private; it is made public by hand after the first release. Not done yet: the image scan and the
-Playwright run (both later in phase 1); CI builds amd64 only.
+private; it is made public by hand after the first release. Playwright runs in CI (Chromium only,
+section 8.2). Not done yet: the image scan (later in phase 1); CI builds amd64 only. `pages.yml`
+builds the demo and publishes it to GitHub Pages on a push to `main`.
 `bench.yml` is manual and only documents how to run the benchmark; it does not run models in CI.
 
 ### 8.5 Demo page
@@ -790,6 +797,12 @@ Playwright run (both later in phase 1); CI builds amd64 only.
 a "show what the server sees" panel (sealed blob, PoW level, the `siteverify` answer) and the
 live metrics; it runs from `docker compose up` with a demo site key. A public demo is optional
 (D4).
+
+**[done in part]** `demo/` today: one proverb widget (the only type the server has), its events and
+the decoded token payload in the "what the server sees" panel, settings for the API, the site key,
+the language and the theme, and a plain banner when the API cannot be reached. It is published to
+GitHub Pages by `pages.yml`; with no API deployed, the public page shows that banner. Not yet: the
+other two types, the live metrics, `docker compose up`.
 
 ---
 
