@@ -10,10 +10,11 @@
   "scripts": {
     "lint": "biome check .",
     "format": "biome format --write .",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b --builders 1",
     "test": "vitest run --passWithNoTests",
     "check": "npm run lint && npm run typecheck && npm test",
-    "build": "tsc -b"
+    "build": "tsc -b --builders 1",
+    "//": "tsc 7 builds referenced projects in parallel; one builder keeps shared/ ahead of server/ and the tools project on a clean checkout."
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
