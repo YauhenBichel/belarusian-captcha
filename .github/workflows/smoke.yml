@@ -1,0 +1,145 @@
+name: Live monitor
+
+# Every 15 minutes: one full pass through the public verify API (healthz, challenge, proof-of-work,
+# solve, siteverify) with scripts/live-monitor.ts, as the monitor site. A failure opens an issue
+# labelled `live-monitor`, or adds a comment to the open one; the next good pass closes it.
+#
+# Settings (repository Settings > Secrets and variables > Actions):
+#   variable BC_LIVE_URL               the public base URL, e.g. https://captcha.example.org
+#                                      (unset: the monitor job is skipped and nothing alerts)
+#   variable BC_MONITOR_SITEKEY        the monitor site's key in the server's sites.yaml
+#   secret   BC_MONITOR_SECRET         the monitor site's siteverify secret
+#   secret   LIVE_MONITOR_DEADMAN_URL  optional: a healthchecks-style ping URL; pinged on every
+#                                      pass, with /fail appended on a failed one, so a monitor that
+#                                      stops running (GitHub pauses schedules in a repository with
+#                                      no activity for 60 days) is noticed as well
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-monitor
+  cancel-in-progress: false
+
+jobs:
+  not-configured:
+    name: live monitor (not configured)
+    if: vars.BC_LIVE_URL == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Explain why nothing ran
+        run: echo "::notice::BC_LIVE_URL is not set; the live monitor is off (see the header of smoke.yml)"
+
+  monitor:
+    name: live monitor (challenge, PoW, solve, siteverify)
+    if: vars.BC_LIVE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install (from the lock file only)
+        run: npm ci --no-audit --no-fund
+      - name: Build shared/ (the monitor imports its dist)
+        run: npx tsc -b --builders 1 shared
+
+      - name: "Run the monitor: one retry after 30 s before it counts as down"
+        id: run
+        env:
+          BC_LIVE_URL: ${{ vars.BC_LIVE_URL }}
+          BC_MONITOR_SITEKEY: ${{ vars.BC_MONITOR_SITEKEY }}
+          BC_MONITOR_SECRET: ${{ secrets.BC_MONITOR_SECRET }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          status=1
+          for attempt in 1 2; do
+            echo "--- attempt $attempt"
+            if node scripts/live-monitor.ts | tee monitor.log; then status=0; break; fi
+            [ "$attempt" = 1 ] && sleep 30
+          done
+          if [ "$status" = 0 ]; then
+            echo "result=up" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=down" >> "$GITHUB_OUTPUT"
+            echo "::error::live monitor failed: $(grep -m1 '^FAIL' monitor.log || echo 'no step output')"
+          fi
+          { echo '### Live monitor'; echo; echo '```'; cat monitor.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Ping the dead-man check
+        if: always() && steps.run.outputs.result != ''
+        env:
+          DEADMAN_URL: ${{ secrets.LIVE_MONITOR_DEADMAN_URL }}
+          RESULT: ${{ steps.run.outputs.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$DEADMAN_URL" ]; then echo "no LIVE_MONITOR_DEADMAN_URL; skipped"; exit 0; fi
+          url="$DEADMAN_URL"; [ "$RESULT" = up ] || url="$DEADMAN_URL/fail"
+          # The URL is the secret: curl's own errors are kept out of the log.
+          curl -fsS -m 10 --retry 3 -o /dev/null "$url" 2>/dev/null && echo "pinged ($RESULT)" \
+            || echo "::warning::dead-man ping failed"
+
+      - name: "Alert: open or update the live-monitor issue"
+        if: steps.run.outputs.result == 'down'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BC_LIVE_URL: ${{ vars.BC_LIVE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh label create live-monitor --color B60205 \
+            --description "Opened and closed by the live monitor (smoke.yml)" 2>/dev/null || true
+          failed="$(grep -m1 '^FAIL' monitor.log || echo 'FAIL (no step output)')"
+          {
+            echo "The live monitor failed at $(date -u +'%Y-%m-%d %H:%M UTC') against $BC_LIVE_URL."
+            echo
+            echo "**$failed**"
+            echo
+            echo "Run: $RUN_URL"
+            echo
+            echo '```'
+            grep -E '^(ok|FAIL) ' monitor.log || true
+            echo '```'
+          } > alert.md
+          issue="$(gh issue list --label live-monitor --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file alert.md
+            echo "commented on #$issue"
+          else
+            gh issue create --title "Live monitor: the verify API is failing" --label live-monitor --body-file alert.md
+          fi
+
+      - name: "Recovery: close the live-monitor issue"
+        if: steps.run.outputs.result == 'up'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for issue in $(gh issue list --label live-monitor --state open --json number --jq '.[].number'); do
+            gh issue close "$issue" --comment "Recovered: a full pass succeeded at $(date -u +'%Y-%m-%d %H:%M UTC'). Run: $RUN_URL"
+            echo "closed #$issue"
+          done
+
+      - name: Fail the run when the API is down
+        if: steps.run.outputs.result == 'down'
+        run: exit 1
