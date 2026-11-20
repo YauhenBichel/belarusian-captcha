@@ -7,4 +7,5 @@ coverage/
 .DS_Store
 # keys and site secrets never go in the repository
 bc-keys*.json
+keys.json
 sites.yaml
