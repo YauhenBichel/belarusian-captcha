@@ -257,7 +257,7 @@ belarusian-captcha/
 | Image rendering | `@napi-rs/canvas` (prebuilt Skia, no system libraries) | renders the distorted word and perturbs pictures in-process with no ImageMagick or native build step |
 | Fonts | OFL-licensed fonts with full Cyrillic and Łacinka coverage (ł, ć, č, š, ž, ŭ, ń, ś, ź) | free to ship in a public image |
 | Stores | SQLite (`better-sqlite3`) by default; Redis as an option | one container, zero services for a small site; Redis for several replicas |
-| Widget build | esbuild, IIFE bundle plus ES module | small, no runtime dependencies; target under 25 kB gzipped plus the worker **[unverified target]** |
+| Widget build | esbuild, IIFE bundle plus ES module | small, no runtime dependencies; under 25 kB gzipped plus the worker, checked in CI (5.7 kB when first built **[measured]**) |
 | Python SDK | standard library only (`urllib`, `json`) | nothing to audit, works in any framework |
 | Container | **distroless** Node 24 (`gcr.io/distroless/nodejs24-debian13:nonroot`) pinned by digest, uid 65532, no shell or npm, read-only root filesystem, one writable volume for SQLite (decided in #6) | small attack surface |
 
@@ -648,8 +648,11 @@ lets bundlers import it.
 
 - **Shadow DOM** so the site's CSS cannot break it and it cannot break the site's.
 - **Content Security Policy**: no `eval`, no inline scripts; styles through constructable
-  stylesheets; the worker loads from `/widget.worker.js` on the API origin (so `worker-src` names
-  that origin; no `blob:` needed).
+  stylesheets; no `blob:` workers. A worker script must be same-origin with the page, so the
+  worker runs off the main thread only when `widget.worker.js` is served from the site's origin
+  (or `data-worker` names a same-origin copy); when the widget comes from the API's origin, or the
+  worker cannot load, the same search runs on the main thread in yielding slices (found while
+  building the widget; see `widget/README.md`).
 - **i18n of the interface**: `be` (default), `be-Latn`, `ru`, `en`. Only the interface changes;
   the challenge stays Belarusian. Strings live in `widget/src/i18n/*.json`, reviewed by native
   speakers like content.
@@ -661,7 +664,8 @@ lets bundlers import it.
   ("Правяраем…", "Гатова", "Не тое, вось новае пытанне") in an `aria-live="polite"` region; the
   word image carries no alt text with the answer (that would give it away) but a link to the
   accessible alternative.
-- **Size**: target under 25 kB gzipped plus the worker **[unverified target]**.
+- **Size**: under 25 kB gzipped plus the worker, checked in CI; 5.7 kB gzipped and a 0.5 kB worker
+  when first built **[measured]**.
 - **Failure display**: if the API is unreachable, the widget says so in the visitor's language
   and calls `data-error-callback`; the SDK decides fail-open or fail-closed (D11).
 

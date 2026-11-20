@@ -18,8 +18,8 @@ export default defineConfig({
     // today's numbers, so a change that drops tested code fails while ordinary edits do not.
     coverage: {
       provider: 'v8',
-      include: ['shared/src/**/*.ts', 'server/src/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/test-helpers.ts'],
+      include: ['shared/src/**/*.ts', 'server/src/**/*.ts', 'widget/src/**/*.ts'],
+      exclude: ['**/*.test.ts', '**/test-helpers.ts', 'widget/src/auto.ts', 'widget/src/worker.ts'],
       reporter: ['text', 'json-summary'],
       thresholds: { lines: 85, statements: 82, functions: 80, branches: 75 },
     },

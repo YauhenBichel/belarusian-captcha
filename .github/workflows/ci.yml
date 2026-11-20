@@ -33,6 +33,16 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
+      - name: Widget build and size budget (25 kB gzipped; the worker 5 kB)
+        run: |
+          npm run build:widget
+          {
+            echo '### Widget size'
+            echo
+            echo '| File | Bytes | Gzipped | Budget |'
+            echo '| --- | ---: | ---: | ---: |'
+            node -e 'const r=require("./widget/dist/sri.json");for(const[f,v]of Object.entries(r))console.log(`| ${f} | ${v.bytes} | ${v.gzip} | ${v.budget} |`)'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   image:
     name: server image (build and smoke test)

@@ -5,13 +5,16 @@
     "rootDir": ".",
     "outDir": "node_modules/.cache/tsc-tools",
     "emitDeclarationOnly": true,
-    "lib": ["es2024", "dom"]
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "resolveJsonModule": true
   },
   "include": [
     "vitest.config.ts",
     "shared/src/**/*.ts",
     "server/src/**/*.ts",
     "server/test/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "widget/src/**/*.ts",
+    "widget/src/i18n/*.json"
   ]
 }
