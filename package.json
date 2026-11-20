@@ -12,6 +12,7 @@
     "format": "biome format --write .",
     "typecheck": "tsc -b --builders 1",
     "test": "vitest run --passWithNoTests",
+    "coverage": "vitest run --coverage",
     "check": "npm run lint && npm run typecheck && npm test",
     "build": "tsc -b --builders 1",
     "//": "tsc 7 builds referenced projects in parallel; one builder keeps shared/ ahead of server/ and the tools project on a clean checkout."
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
     "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "5.1.1",
     "altcha-lib": "2.9.0",
     "typescript": "7.0.2",
     "vitest": "5.1.1"

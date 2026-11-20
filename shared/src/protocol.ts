@@ -16,6 +16,8 @@ export type ErrorCode =
   | 'bad-pow'
   | 'wrong-answer'
   | 'bad-request'
+  /** siteverify: the `action` the site sent is not the one bound into the token. */
+  | 'action-mismatch'
   | 'store-unavailable';
 
 export type ChallengeType = 'proverb';

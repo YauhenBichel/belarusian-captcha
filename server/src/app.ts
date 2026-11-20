@@ -26,11 +26,11 @@ import Fastify, {
   LogController,
 } from 'fastify';
 import { answerHash, buildProverbChallenge, isSealedChallenge } from './challenge.js';
-import { originHostname, type SiteConfig, type Sites } from './config.js';
+import { entryHost, matchOrigin, type SiteConfig, type Sites } from './config.js';
 import type { Metrics } from './metrics.js';
 import type { ContentPack } from './pack.js';
 import type { RateLimiter } from './rate.js';
-import { PRUNE_GRACE_MS, type SpentStore } from './store.js';
+import type { SpentStore } from './store.js';
 
 export interface AppDeps {
   sites: Sites;
@@ -64,7 +64,9 @@ const ACTION = '^[A-Za-z0-9_/-]{0,32}$';
 export function buildApp(deps: AppDeps): FastifyInstance {
   const now = deps.now ?? Date.now;
   const { sites, ring, store, pack, limiter, metrics } = deps;
-  const allHostnames = new Set([...sites.values()].flatMap((s) => s.hostnames));
+  /** Every `host[:port]` entry of every site: who may preflight, and who may read an error. */
+  const allOrigins = new Set([...sites.values()].flatMap((s) => s.hostnames));
+  const widgetRoutes = new Set([`${API_PREFIX}/challenge`, `${API_PREFIX}/solve`]);
 
   const app = Fastify({
     bodyLimit: 16 * 1024,
@@ -103,6 +105,21 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     );
   });
 
+  // A 4xx/5xx from a widget endpoint is readable by any configured origin, so the widget can show
+  // the error code (bad-request, rate-limited, hostname-mismatch, ...) instead of an opaque CORS
+  // failure. Successful answers still carry CORS only for the site's own origins (allowOrigin).
+  app.addHook('onSend', async (req, reply, payload) => {
+    if (
+      reply.statusCode >= 400 &&
+      req.method !== 'OPTIONS' &&
+      widgetRoutes.has(req.routeOptions.url ?? '') &&
+      !reply.hasHeader('access-control-allow-origin')
+    ) {
+      allowOrigin(req, reply, allOrigins);
+    }
+    return payload;
+  });
+
   // siteverify takes form posts as well as JSON (reCAPTCHA-shaped clients send forms).
   app.addContentTypeParser(
     'application/x-www-form-urlencoded',
@@ -112,11 +129,11 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     },
   );
 
-  /** CORS for the widget endpoints: only the origins listed for a site. */
-  function allowOrigin(req: FastifyRequest, reply: FastifyReply, hostnames: Iterable<string>) {
+  /** CORS for the widget endpoints: only the origins listed for a site (see matchOrigin). */
+  function allowOrigin(req: FastifyRequest, reply: FastifyReply, entries: Iterable<string>) {
     const origin = req.headers.origin;
-    const host = originHostname(origin);
-    if (!origin || !host || ![...hostnames].includes(host)) return undefined;
+    const host = matchOrigin(origin, entries);
+    if (!origin || !host) return undefined;
     reply.header('access-control-allow-origin', origin);
     reply.header('vary', 'Origin');
     return host;
@@ -162,7 +179,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.options(`${API_PREFIX}/challenge`, preflight);
   app.options(`${API_PREFIX}/solve`, preflight);
   async function preflight(req: FastifyRequest, reply: FastifyReply) {
-    if (!allowOrigin(req, reply, allHostnames)) return reply.code(403).send();
+    if (!allowOrigin(req, reply, allOrigins)) return reply.code(403).send();
     reply.header('access-control-allow-methods', 'GET, POST');
     reply.header('access-control-allow-headers', 'content-type');
     reply.header('access-control-max-age', '600');
@@ -239,7 +256,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       if (!site) return fail(req, reply, 403, 'invalid-sitekey');
       req.bc.site = site.sitekey;
       req.bc.level = c.lvl;
-      // 2. The browser origin must be one of the site's host names.
+      // 2. The browser origin must be one of the site's origins (scheme and port included).
       const hostname = allowOrigin(req, reply, site.hostnames);
       if (!hostname) return fail(req, reply, 403, 'hostname-mismatch');
 
@@ -272,7 +289,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       // 5. Spend the challenge id: one answer per challenge. Fail closed if the store is down.
       let first: boolean;
       try {
-        first = await store.spend('challenge', c.cid, c.exp + PRUNE_GRACE_MS);
+        first = await store.spend('challenge', c.cid, c.exp);
       } catch (err) {
         req.log.error({ err: String(err) }, 'spent store unavailable');
         metrics.solves.inc({ site: site.sitekey, type: c.t, result: 'store-unavailable' });
@@ -284,7 +301,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         req.body.answer.length === c.items.length &&
         timingSafeEqualString(await answerHash(c.cid, req.body.answer), c.ah);
       for (const item of c.items) {
-        metrics.itemAnswers.inc({ item: String(item), result: right ? 'right' : 'wrong-answer' });
+        metrics.itemAnswers.inc({
+          item: metrics.itemLabel(String(item)),
+          result: right ? 'right' : 'wrong-answer',
+        });
       }
       if (!right) return rejectWithNext('wrong-answer', true);
       // 7. The pass token.
@@ -341,13 +361,25 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       if (typeof body.sitekey === 'string' && body.sitekey !== site.sitekey) {
         return refuse('invalid-sitekey', site.sitekey);
       }
+      // Rate limit per secret key (design section 1.3, item 5). Counted only once the secret is
+      // right, so someone holding a token but not the secret cannot use up the site's budget.
+      if (limiter.overLimit('siteverify', site.sitekey, site.rate.siteverifyPerMin)) {
+        reply.code(429);
+        reply.header('retry-after', '60');
+        return refuse('rate-limited', site.sitekey);
+      }
       if (!v.ok) return refuse('timeout-or-duplicate', site.sitekey);
-      if (!site.hostnames.includes(payload.hostname)) {
+      if (!site.hostnames.some((e) => entryHost(e) === payload.hostname)) {
         return refuse('hostname-mismatch', site.sitekey);
+      }
+      // Optional: the action the site expects. A mismatch is refused before the token is spent,
+      // like a wrong site key, so it cannot burn a token meant for another form.
+      if (body.action !== undefined && body.action !== payload.action) {
+        return refuse('action-mismatch', site.sitekey);
       }
       let first: boolean;
       try {
-        first = await store.spend('token', payload.tid, payload.exp * 1000 + PRUNE_GRACE_MS);
+        first = await store.spend('token', payload.tid, payload.exp * 1000);
       } catch (err) {
         req.log.error({ err: String(err) }, 'spent store unavailable');
         reply.code(503);

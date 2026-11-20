@@ -11,10 +11,19 @@ sites:
   - sitekey: example-sitekey-0001
     # Placeholder: replace with the hash of your own secret. This one is sha256("change-me").
     secret_sha256: "e2186dbdb1bb4193608605e84f33208765b5693b55edd4f730a719a100eeea6f"
+    # Where the widget runs. Each entry is a host name, or host:port. The browser Origin must
+    # match an entry exactly:
+    #   - scheme: https only; plain http is accepted for localhost, *.localhost and 127.0.0.1
+    #     (local development), never for a public host;
+    #   - port: an entry without a port matches the default port only (443, or 80 for http);
+    #     list "example.org:8443" to allow https://example.org:8443.
+    # siteverify compares the host part only (the pass token carries the host name, not a port).
     hostnames: [example.org, www.example.org]
     types: { proverb: 1 }
     script: cyrl
     pow: { base: 50000, max_level: 6 }
-    rate: { r0_per_min: 10, hard_per_min: 120 }
+    # r0 and the hard limit are per client address bucket for /challenge; siteverify_per_min is
+    # per secret key for /siteverify (default 600; over it: 429 rate-limited, Retry-After: 60).
+    rate: { r0_per_min: 10, hard_per_min: 120, siteverify_per_min: 600 }
     token_ttl_s: 300
     challenge_ttl_s: 600

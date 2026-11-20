@@ -3,7 +3,7 @@
 // and any listed kid is still accepted until it is removed.
 
 import { hkdf } from './crypto.js';
-import { base64Decode, bytesToHex } from './encoding.js';
+import { base64Decode, base64urlDecode, bytesToHex } from './encoding.js';
 
 export const KID_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 export const MIN_KEY_BYTES = 32;
@@ -23,6 +23,25 @@ export interface KeyFile {
   keys: Record<string, string>;
 }
 
+/**
+ * A key file that cannot be used. The message names the field or the kid, never key material
+ * (not even a fragment of the file, which a JSON syntax error message would otherwise quote).
+ */
+export class KeyFileError extends Error {
+  override name = 'KeyFileError';
+  /** The key id the error is about, when there is one. */
+  readonly kid: string | undefined;
+  constructor(message: string, kid?: string) {
+    super(message);
+    this.kid = kid;
+  }
+}
+
+/** Standard base64 or base64url, padding optional. */
+const BASE64 = /^(?:[A-Za-z0-9+/]+|[A-Za-z0-9_-]+)={0,2}$/;
+
+const SHAPE = 'key file must be {"active": "<kid>", "keys": {"<kid>": "<base64>", ...}}';
+
 export class KeyRing {
   readonly active: string;
   readonly #masters: Map<string, Uint8Array<ArrayBuffer>>;
@@ -38,18 +57,57 @@ export class KeyRing {
     this.#masters = masters;
   }
 
-  /** Parses `{"active":"k2","keys":{"k1":"<base64>","k2":"<base64>"}}`. */
+  /**
+   * Parses `{"active":"k2","keys":{"k1":"<base64>","k2":"<base64>"}}` (docs/DESIGN.md section
+   * 5.2) strictly: no other fields, a non-empty `keys` mapping, valid kids, base64 values of at
+   * least 32 bytes, and `active` one of the kids. Throws KeyFileError.
+   */
   static fromJson(json: string): KeyRing {
-    const parsed = JSON.parse(json) as Partial<KeyFile>;
-    if (typeof parsed.active !== 'string' || typeof parsed.keys !== 'object' || !parsed.keys) {
-      throw new Error('key file must be {"active": "<kid>", "keys": {"<kid>": "<base64>"}}');
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new KeyFileError('key file is not valid JSON');
     }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new KeyFileError(SHAPE);
+    }
+    const file = parsed as Record<string, unknown>;
+    const extra = Object.keys(file).filter((k) => k !== 'active' && k !== 'keys');
+    if (extra.length > 0) throw new KeyFileError(`${SHAPE}; unknown field "${extra[0]}"`);
+    const { active, keys } = file;
+    if (typeof active !== 'string' || !KID_PATTERN.test(active)) {
+      throw new KeyFileError(`${SHAPE}; "active" must be a key id matching ${KID_PATTERN}`);
+    }
+    if (typeof keys !== 'object' || keys === null || Array.isArray(keys)) {
+      throw new KeyFileError(`${SHAPE}; "keys" must be a mapping`);
+    }
+    const entries = Object.entries(keys);
+    if (entries.length === 0) throw new KeyFileError(`${SHAPE}; "keys" is empty`);
     const masters = new Map<string, Uint8Array<ArrayBuffer>>();
-    for (const [kid, value] of Object.entries(parsed.keys)) {
-      if (typeof value !== 'string') throw new Error(`key "${kid}" must be a base64 string`);
-      masters.set(kid, base64Decode(value));
+    for (const [kid, value] of entries) {
+      if (!KID_PATTERN.test(kid)) throw new KeyFileError(`invalid key id "${kid}"`, kid);
+      if (typeof value !== 'string') {
+        throw new KeyFileError(`key "${kid}" must be a base64 string`, kid);
+      }
+      let bytes: Uint8Array<ArrayBuffer>;
+      try {
+        if (!BASE64.test(value)) throw new Error('not base64');
+        bytes = /[-_]/.test(value)
+          ? base64urlDecode(value.replace(/=+$/, ''))
+          : base64Decode(value);
+      } catch {
+        throw new KeyFileError(`key "${kid}" is not valid base64`, kid);
+      }
+      if (bytes.length < MIN_KEY_BYTES) {
+        throw new KeyFileError(`key "${kid}" is shorter than ${MIN_KEY_BYTES} bytes`, kid);
+      }
+      masters.set(kid, bytes);
     }
-    return new KeyRing(parsed.active, masters);
+    if (!masters.has(active)) {
+      throw new KeyFileError(`active key id "${active}" is not in keys`, active);
+    }
+    return new KeyRing(active, masters);
   }
 
   has(kid: string): boolean {

@@ -6,16 +6,23 @@ import Database from 'better-sqlite3';
 export type SpentKind = 'challenge' | 'token';
 
 export interface SpentStore {
-  /** True for the first use of (kind, id); false for every later one. Throws when unavailable. */
+  /**
+   * True for the first use of (kind, id); false for every later one. Throws when unavailable.
+   * `expiresAtMs` is the id's own expiry (the challenge's or token's `exp`), with no grace added:
+   * the store adds PRUNE_GRACE_MS once, when it prunes.
+   */
   spend(kind: SpentKind, id: string, expiresAtMs: number): Promise<boolean>;
-  /** Deletes rows whose expiry plus the grace period has passed; returns how many. */
+  /** Deletes rows whose expiry plus PRUNE_GRACE_MS has passed; returns how many. */
   prune(nowMs: number): Promise<number>;
   healthy(): Promise<boolean>;
   close(): void;
   readonly name: string;
 }
 
-/** Kept after expiry so a token that is just past its exp still reads as a duplicate. */
+/**
+ * How long a spent id is kept after its own expiry (docs/DESIGN.md section 4.3: "until their expiry
+ * plus a minute"). Applied once, in prune(); callers pass the bare expiry to spend().
+ */
 export const PRUNE_GRACE_MS = 60_000;
 
 export class SqliteSpentStore implements SpentStore {

@@ -76,7 +76,9 @@ describe('GET /challenge', () => {
   });
 
   it('answers 429 rate-limited over the hard limit, with Retry-After', async () => {
-    const h = await harness({ sites: [await site({ rate: { r0PerMin: 1, hardPerMin: 3 } })] });
+    const h = await harness({
+      sites: [await site({ rate: { r0PerMin: 1, hardPerMin: 3, siteverifyPerMin: 600 } })],
+    });
     for (let i = 0; i < 3; i++) expect((await getChallenge(h)).statusCode).toBe(200);
     const res = await getChallenge(h);
     expect(res.statusCode).toBe(429);
@@ -87,7 +89,9 @@ describe('GET /challenge', () => {
   });
 
   it('raises the level, and so the proof-of-work, with the request rate', async () => {
-    const h = await harness({ sites: [await site({ rate: { r0PerMin: 1, hardPerMin: 100 } })] });
+    const h = await harness({
+      sites: [await site({ rate: { r0PerMin: 1, hardPerMin: 100, siteverifyPerMin: 600 } })],
+    });
     const maxes: number[] = [];
     for (let i = 0; i < 4; i++) maxes.push((await getChallenge(h)).json().pow.maxnumber);
     expect(maxes).toEqual([50, 100, 100, 200]);
