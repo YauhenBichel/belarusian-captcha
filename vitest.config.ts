@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['**/src/**/*.test.ts', '**/test/**/*.test.ts'],
+    include: ['**/src/**/*.test.ts', '**/test/**/*.test.ts', 'scripts/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     // `npm run coverage`: v8 coverage of the package sources. The floor sits a little below
     // today's numbers, so a change that drops tested code fails while ordinary edits do not.

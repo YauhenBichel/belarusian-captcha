@@ -68,6 +68,22 @@ match your proxy (the example trusts one hop). Build it yourself with `docker bu
 belarusian-captcha-server .` at the repository root; `scripts/docker-smoke.sh <image>` runs the
 same smoke test as CI.
 
+## Live monitor
+
+[`.github/workflows/smoke.yml`](.github/workflows/smoke.yml) runs
+[`scripts/live-monitor.ts`](scripts/live-monitor.ts) every 15 minutes against a running server:
+`/healthz`, then a challenge, its proof-of-work and answer, `/solve` and `/siteverify`, as a
+dedicated monitor site. A failure opens (or comments on) an issue labelled `live-monitor`; the
+next good pass closes it. It is off until the repository variable `BC_LIVE_URL` is set; the
+header of the workflow lists every setting. The monitor reads the right answers from the content
+pack, so it needs the pack the server runs (today the synthetic one). Run it by hand after
+`npm run build`:
+
+```bash
+BC_LIVE_URL=http://127.0.0.1:8080 BC_MONITOR_SITEKEY=<key> BC_MONITOR_SECRET=<secret> \
+  node scripts/live-monitor.ts
+```
+
 ## Licence
 
 Code: Apache-2.0 ([LICENSE](LICENSE)). Content (proverbs, words, pictures): CC BY-SA 4.0. See
