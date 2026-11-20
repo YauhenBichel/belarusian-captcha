@@ -232,7 +232,8 @@ nothing here merges an existing repository.
 ```
 belarusian-captcha/
   widget/            vanilla TypeScript widget, esbuild bundle -> dist/widget.js (+ worker)
-  server/            TypeScript API (Fastify), Dockerfile, sites.example.yaml
+  server/            TypeScript API (Fastify), sites.example.yaml
+  Dockerfile         server image; at the root because the build needs the root lockfile and shared/
   shared/            protocol types, normaliser, PoW code shared by widget and server
   sdk/node/          npm package: verify(token, {secret, url})
   sdk/python/        PyPI package: verify(token, secret=..., url=...) - stdlib only
@@ -258,7 +259,7 @@ belarusian-captcha/
 | Stores | SQLite (`better-sqlite3`) by default; Redis as an option | one container, zero services for a small site; Redis for several replicas |
 | Widget build | esbuild, IIFE bundle plus ES module | small, no runtime dependencies; target under 25 kB gzipped plus the worker **[unverified target]** |
 | Python SDK | standard library only (`urllib`, `json`) | nothing to audit, works in any framework |
-| Container | slim or distroless Node 24 base pinned by digest, non-root, read-only root filesystem, one writable volume for SQLite | small attack surface |
+| Container | **distroless** Node 24 (`gcr.io/distroless/nodejs24-debian13:nonroot`) pinned by digest, uid 65532, no shell or npm, read-only root filesystem, one writable volume for SQLite (decided in #6) | small attack surface |
 
 ---
 
@@ -571,7 +572,8 @@ sites:
 ```
 BC_KEYS_FILE=/run/secrets/bc-keys.json   # {"active":"k2","keys":{"k1":"…","k2":"…"}}
 BC_STORE=sqlite:/data/bc.sqlite          # or redis://redis:6379/0
-BC_PACK=/pack/pack.sqlite                # default: the pack inside the image
+BC_PACK=/etc/bc/pack.json                # mounted; no pack is built into the image until a reviewed pack exists
+BC_METRICS_HOST=0.0.0.0                  # the image's default, so /metrics is reachable; publish 9464 only internally
 BC_LOG_LEVEL=info
 ```
 
@@ -583,14 +585,20 @@ hash; `bc-admin keys rotate` adds a new key id and keeps the old one for one TTL
 ### 5.3 Docker
 
 ```
-docker run -d -p 8080:8080 \
+docker run -d --read-only --cap-drop ALL --security-opt no-new-privileges \
+  -p 8080:8080 -p 127.0.0.1:9464:9464 \
   -v ./sites.yaml:/etc/bc/sites.yaml:ro \
-  -v bc-data:/data \
   -v ./bc-keys.json:/run/secrets/bc-keys.json:ro \
-  ghcr.io/yauhenbichel/belarusian-captcha:0.1
+  -v ./pack.json:/etc/bc/pack.json:ro \
+  -v bc-data:/data \
+  ghcr.io/yauhenbichel/belarusian-captcha-server:<version>
 ```
 
-Non-root user, read-only root filesystem, one writable volume, `HEALTHCHECK` on `/healthz`.
+The image is `belarusian-captcha-server` (the npm and PyPI SDKs keep the name
+`belarusian-captcha`), for linux/amd64 and linux/arm64. Non-root (uid 65532, so mounted files must
+be readable by it), read-only root filesystem, one writable volume, `HEALTHCHECK` on `/healthz`.
+Sites, keys and the content pack are mounted, never built in. The README's "Run with Docker"
+section is the operational reference.
 Memory about 100–150 MB **[unverified]**, no GPU. A `compose.yaml` example adds Redis for
 several replicas.
 
@@ -765,7 +773,11 @@ expected high VLM rates. The release notes never claim a type is "bot-proof".
 `ci.yml` on every push and pull request: lint and type-check, unit tests (Node 24, Python 3.11–3.13),
 content pipeline checks, build the widget and check its size budget, build the image, Playwright,
 `docker scout`- or Trivy-style image scan. All actions pinned by SHA, `permissions: contents: read`
-by default. `release.yml` is manual, on an existing semver tag, as in `belarusian-verse`.
+by default. `release.yml` runs when a `v*.*.*` tag is pushed: it checks the tag is semver, smoke-tests the
+amd64 image, pushes amd64 and arm64 images with provenance and an SBOM (`:latest` only for
+non-pre-release tags), then creates the GitHub release. GitHub creates the GHCR package as
+private; it is made public by hand after the first release. Not done yet: the image scan and the
+Playwright run (both later in phase 1); CI builds amd64 only.
 `bench.yml` is manual and only documents how to run the benchmark; it does not run models in CI.
 
 ### 8.5 Demo page
@@ -848,7 +860,7 @@ each site can run its own container, and a small VPS can host a shared one.
 | D11 | SDK default when the API is down | **fail closed**, configurable per site |
 | D12 | Release gates and human panel | humans ≥ 90 %, Tesseract ≤ 5 % per typed-word preset; all bot rates published; a panel of 10–20 native speakers per release with a new type |
 | D13 | Content licence | **CC BY-SA 4.0 for the content pack**, Apache-2.0 for code, as in `belarusian-verse` |
-| D14 | Package names | `belarusian-captcha` on npm and PyPI (both free on 20 November 2026 **[measured]**) and `ghcr.io/yauhenbichel/belarusian-captcha` |
+| D14 | Package names | `belarusian-captcha` on npm and PyPI (both free on 20 November 2026 **[measured]**) and `ghcr.io/yauhenbichel/belarusian-captcha-server` (image renamed in #6) |
 
 ---
 
