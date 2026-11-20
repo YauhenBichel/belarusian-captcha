@@ -37,8 +37,8 @@ export class KeyFileError extends Error {
   }
 }
 
-/** Standard base64 with optional padding, or base64url without padding. */
-const BASE64 = /^(?:[A-Za-z0-9+/]+={0,2}|[A-Za-z0-9_-]+)$/;
+/** Standard base64 or base64url, padding optional. */
+const BASE64 = /^(?:[A-Za-z0-9+/]+|[A-Za-z0-9_-]+)={0,2}$/;
 
 const SHAPE = 'key file must be {"active": "<kid>", "keys": {"<kid>": "<base64>", ...}}';
 
@@ -93,8 +93,9 @@ export class KeyRing {
       let bytes: Uint8Array<ArrayBuffer>;
       try {
         if (!BASE64.test(value)) throw new Error('not base64');
-        bytes =
-          value.includes('-') || value.includes('_') ? base64urlDecode(value) : base64Decode(value);
+        bytes = /[-_]/.test(value)
+          ? base64urlDecode(value.replace(/=+$/, ''))
+          : base64Decode(value);
       } catch {
         throw new KeyFileError(`key "${kid}" is not valid base64`, kid);
       }

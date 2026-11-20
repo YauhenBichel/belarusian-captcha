@@ -80,5 +80,13 @@ describe('KeyRing', () => {
       JSON.stringify({ active: 'k1', keys: { k1: base64urlEncode(randomBytes(32)) } }),
     );
     expect(ring.has('k1')).toBe(true);
+    // 34 bytes of 0xfb: 46 base64url characters, some "-" and "_"; padded to 48 with "==".
+    const urlKey = base64urlEncode(new Uint8Array(34).fill(0xfb));
+    expect(urlKey).toMatch(/[-_]/);
+    for (const v of [urlKey, `${urlKey}==`]) {
+      expect(KeyRing.fromJson(JSON.stringify({ active: 'k1', keys: { k1: v } })).has('k1')).toBe(
+        true,
+      );
+    }
   });
 });
