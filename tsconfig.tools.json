@@ -1,8 +1,11 @@
 {
+  "//": "Type-checks the tests and root config files (not emitted to any package's dist).",
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": ".",
     "outDir": "node_modules/.cache/tsc-tools",
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "lib": ["es2024", "dom"]
   },
-  "include": ["vitest.config.ts"]
+  "include": ["vitest.config.ts", "shared/src/**/*.ts", "server/src/**/*.ts", "server/test/**/*.ts"]
 }

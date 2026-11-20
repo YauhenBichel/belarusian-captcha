@@ -12,12 +12,18 @@
     "format": "biome format --write .",
     "typecheck": "tsc -b",
     "test": "vitest run --passWithNoTests",
-    "check": "npm run lint && npm run typecheck && npm test"
+    "check": "npm run lint && npm run typecheck && npm test",
+    "build": "tsc -b"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
     "@types/node": "24.19.2",
+    "altcha-lib": "2.9.0",
     "typescript": "7.0.2",
     "vitest": "5.1.1"
-  }
+  },
+  "workspaces": [
+    "shared",
+    "server"
+  ]
 }

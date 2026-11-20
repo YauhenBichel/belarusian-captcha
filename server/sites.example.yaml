@@ -1,0 +1,20 @@
+# Example sites.yaml (docs/DESIGN.md section 5.2). Mount it read-only at /etc/bc/sites.yaml.
+#
+# Secrets are stored only as SHA-256 hashes. Until the bc-admin CLI lands, make a secret and its
+# hash with:
+#
+#   node -e 'const c=require("node:crypto");const s=c.randomBytes(32).toString("base64url");console.log("secret:",s);console.log("secret_sha256:",c.createHash("sha256").update(s).digest("hex"))'
+#
+# Give the secret to the site's backend (for siteverify) and put only the hash here.
+
+sites:
+  - sitekey: example-sitekey-0001
+    # Placeholder: replace with the hash of your own secret. This one is sha256("change-me").
+    secret_sha256: "e2186dbdb1bb4193608605e84f33208765b5693b55edd4f730a719a100eeea6f"
+    hostnames: [example.org, www.example.org]
+    types: { proverb: 1 }
+    script: cyrl
+    pow: { base: 50000, max_level: 6 }
+    rate: { r0_per_min: 10, hard_per_min: 120 }
+    token_ttl_s: 300
+    challenge_ttl_s: 600

@@ -1,0 +1,23 @@
+{
+  "name": "@belarusian-captcha/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Protocol types, ALTCHA-compatible proof-of-work, sealed challenges, pass tokens and the answer normaliser, shared by the server and the widget.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

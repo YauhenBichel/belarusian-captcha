@@ -1,0 +1,103 @@
+{
+  "format": "bc-pack-json-v1",
+  "version": "synthetic-0",
+  "note": "SYNTHETIC TEST DATA - not Belarusian content. Placeholder strings only; real items are reviewed proverbs from the content pipeline (owner decision D5).",
+  "items": [
+    {
+      "id": "syn-a1",
+      "family": "fam-a",
+      "cut": "SYNTHETIC cut a1 ...",
+      "ending": "ending alpha one",
+      "difficulty": "easy",
+      "status": "live"
+    },
+    {
+      "id": "syn-a2",
+      "family": "fam-a",
+      "cut": "SYNTHETIC cut a2 ...",
+      "ending": "ending alpha two",
+      "difficulty": "normal",
+      "status": "live"
+    },
+    {
+      "id": "syn-b1",
+      "family": "fam-b",
+      "cut": "SYNTHETIC cut b1 ...",
+      "ending": "ending bravo",
+      "difficulty": "easy",
+      "status": "live"
+    },
+    {
+      "id": "syn-b2",
+      "family": "fam-b",
+      "cut": "SYNTHETIC cut b2 ...",
+      "ending": "ending bravo long variant here",
+      "difficulty": "normal",
+      "status": "live"
+    },
+    {
+      "id": "syn-c1",
+      "family": "fam-c",
+      "cut": "SYNTHETIC cut c1 ...",
+      "ending": "ending charlie one",
+      "difficulty": "easy",
+      "status": "live"
+    },
+    {
+      "id": "syn-c2",
+      "family": "fam-c",
+      "cut": "SYNTHETIC cut c2 ...",
+      "ending": "ending charlie two",
+      "difficulty": "normal",
+      "status": "live"
+    },
+    {
+      "id": "syn-d1",
+      "family": "fam-d",
+      "cut": "SYNTHETIC cut d1 ...",
+      "ending": "delta",
+      "difficulty": "easy",
+      "status": "live"
+    },
+    {
+      "id": "syn-d2",
+      "family": "fam-d",
+      "cut": "SYNTHETIC cut d2 ...",
+      "ending": "ending delta two",
+      "difficulty": "normal",
+      "status": "live"
+    },
+    {
+      "id": "syn-e1",
+      "family": "fam-e",
+      "cut": "SYNTHETIC cut e1 ...",
+      "ending": "ending echo one",
+      "difficulty": "easy",
+      "status": "live"
+    },
+    {
+      "id": "syn-f1",
+      "family": "fam-f",
+      "cut": "SYNTHETIC cut f1 ...",
+      "ending": "ending foxtrot one",
+      "difficulty": "normal",
+      "status": "live"
+    },
+    {
+      "id": "syn-g1",
+      "family": "fam-g",
+      "cut": "SYNTHETIC cut g1 ...",
+      "ending": "ending golf draft",
+      "difficulty": "easy",
+      "status": "draft"
+    },
+    {
+      "id": "syn-h1",
+      "family": "fam-h",
+      "cut": "SYNTHETIC cut h1 ...",
+      "ending": "ending hotel retired",
+      "difficulty": "normal",
+      "status": "retired"
+    }
+  ]
+}

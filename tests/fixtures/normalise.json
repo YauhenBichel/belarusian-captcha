@@ -1,0 +1,35 @@
+{
+  "description": "Answer normaliser cases (docs/DESIGN.md section 3.3), shared by the TypeScript tests and the Python content pipeline. Each case: normalise(input) == expected. Words are the design's own examples (мова, сям'я); everything else is a synthetic letter sequence, not a word.",
+  "cases": [
+    { "step": 1, "input": "  мова  ", "expected": "мова" },
+    { "step": 1, "input": "а \t\n  б", "expected": "а б" },
+    {
+      "step": 2,
+      "input": "йў",
+      "expected": "йу",
+      "note": "й and ў keep their breve through the NFD/NFC round trip; only ў is then folded (step 5), й is not и"
+    },
+    { "step": 2, "input": "мо́ва", "expected": "мова" },
+    { "step": 2, "input": "мо̀ва", "expected": "мова" },
+    { "step": 3, "input": "МОВА", "expected": "мова" },
+    { "step": 4, "input": "сям’я", "expected": "сям'я" },
+    { "step": 4, "input": "сямʼя", "expected": "сям'я" },
+    { "step": 4, "input": "сям‘я", "expected": "сям'я" },
+    { "step": 4, "input": "сям`я", "expected": "сям'я" },
+    { "step": 4, "input": "сямʹя", "expected": "сям'я" },
+    { "step": 4, "input": "сямъя", "expected": "сям'я" },
+    { "step": 5, "input": "ўЎу", "expected": "ууу" },
+    { "step": 6, "input": "иИ", "expected": "іі" },
+    { "step": 6, "input": "щЩ", "expected": "шчшч" },
+    { "step": 7, "input": "мoва", "expected": "мова", "note": "Latin o inside a Cyrillic word" },
+    { "step": 7, "input": "бaeiopcxy", "expected": "баеіорсху" },
+    {
+      "step": 7,
+      "input": "aeiopcxy",
+      "expected": "aeiopcxy",
+      "note": "a word with no Cyrillic is left for step 8 (Łacinka, phase 2)"
+    },
+    { "step": 9, "input": "ёЁ", "expected": "ее" },
+    { "step": 0, "input": "МО́ВА", "expected": "мова", "note": "steps combined" }
+  ]
+}
