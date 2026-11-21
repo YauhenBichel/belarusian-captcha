@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`83bc548` on 21 November 2026.
+`bd7846e` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -14,14 +14,13 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B9a | **Content pipeline core** `content/` (Python, hash-pinned PyYAML): `items/proverbs.yaml` checks (unique ids, `cut` + `ending` = `text`, source and licence, `live` needs two reviews by different handles, `retired` stays), normaliser port tested on `tests/fixtures/normalise.json`, stop-list flags, `build` → `bc-pack-json-v1` with live items only, sorted, plus SHA-256; CI rebuilds and fails on a diff; a server test loads the built pack | 1 | | pack stays JSON ([ADR 0001](docs/architecture/0001-content-pack-format.md)); until B10 there are no live items, so the built pack is not wired into the image or compose yet |
-| B9b | **Distractor checks and review report**: `family` suggestions by normalised overlap, each live item has 3+ endings of similar shape (word count ±1) from other families, `belarusian-verse` spelling and stress flags in a report for reviewers (optional extra, not a CI gate: it downloads GrammarDB tables) | 1 | B9a | design 3.4 rules 1–3; the judge-model ambiguity screen waits for B10 items |
+| B9b | **Distractor checks and review report**: `family` suggestions by normalised overlap, each live item has 3+ endings of similar shape (word count ±1) from other families, `belarusian-verse` spelling and stress flags in a report for reviewers (optional extra, not a CI gate: it downloads GrammarDB tables) | 1 | | design 3.4 rules 1–3; the judge-model ambiguity screen waits for B10 items |
 | B10 | **300 reviewed proverbs**, two native-speaker reviews per item, recorded by handle | 10–15 h of reviewers' time | **owner: D5, who the reviewers are** | the critical path of phase 1; start finding reviewers now |
-| B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9a, B9b, a first slice of B10 | design 8.3 |
+| B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9b, a first slice of B10 | design 8.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B9a and B9b as soon
-as possible so B10 review can start in parallel; B11 and B13 last.
+Suggested order: B9b as soon as
+possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping
 
@@ -66,3 +65,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | Flask demo backend on :3002 through the Python SDK, the contract as a Python unittest mixin (`demo/backends/python_contract.py`), own distroless image, CI job (B8c) | #37 |
 | FastAPI demo backend on :3003 through the Python SDK, same Python contract, own image; CI runs both Python backends as a matrix (B8d) | #39 |
 | `engine-strict=true` in `.npmrc`: `npm ci` on Node < 24 stops with "Unsupported engine" (H3) | #41 |
+| Content pipeline core `content/`: item checks, normaliser port, seed stop-list, `build` → `bc-pack-json-v1` (live items only) with SHA-256, CI `build --check`, a server test loads the synthetic pack; ADR 0001 keeps the pack JSON for phase 1 (B9a) | #43, #44 |
