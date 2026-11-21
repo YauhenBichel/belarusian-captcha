@@ -12,17 +12,19 @@
 //   BC_SHUTDOWN_TIMEOUT_MS  how long SIGTERM/SIGINT wait for in-flight requests (default 10000;
 //                     keep it below the pod's terminationGracePeriodSeconds, 30 s by default)
 
-import { readFileSync, realpathSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
-import { fileURLToPath } from 'node:url';
 import { KeyRing } from '@belarusian-captcha/shared';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { parseSites } from './config.js';
+import { isEntryPoint } from './entry.js';
 import { createMetrics } from './metrics.js';
 import { parsePack } from './pack.js';
 import { RateLimiter } from './rate.js';
 import { openStore, type SpentStore } from './store.js';
+
+export { isEntryPoint };
 
 const SWEEP_MS = 60_000;
 export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -68,16 +70,6 @@ export async function drain(r: Running, timeoutMs: number): Promise<'drained' | 
   if (result === 'timeout') r.app.server.closeAllConnections();
   r.store.close();
   return result;
-}
-
-/** True when this module is the process entry point, through symlinks and relative paths. */
-export function isEntryPoint(moduleUrl: string, argv1: string | undefined): boolean {
-  if (!argv1) return false;
-  try {
-    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(argv1);
-  } catch {
-    return false;
-  }
 }
 
 function port(v: string | undefined, def: number, name: string): number {
