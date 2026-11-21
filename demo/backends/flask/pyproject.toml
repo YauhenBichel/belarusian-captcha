@@ -1,0 +1,33 @@
+# The Flask demo backend: an example for compose.yaml, never published. Runtime dependencies are
+# hash-pinned in requirements.txt; the lint and type tools are the Python SDK's
+# (sdk/python/requirements-dev.txt).
+[project]
+name = "belarusian-captcha-demo-flask"
+version = "0.0.0"
+requires-python = ">=3.13"
+dependencies = ["flask", "waitress"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["demo_flask", "python_contract"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use plain http on 127.0.0.1 and a fake secret.
+"tests/**" = ["S"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+mypy_path = ["src", "..", "../../../sdk/python/src"]
+files = ["src", "tests", "../python_contract.py"]
+
+[[tool.mypy.overrides]]
+# waitress ships no type information.
+module = ["waitress"]
+ignore_missing_imports = true
