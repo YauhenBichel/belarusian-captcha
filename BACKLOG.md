@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`583b428` on 21 November 2026.
+`83bc548` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -27,7 +27,6 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | # | Item | Size | Blocked on |
 |---|---|---|---|
 | H1 | Live monitor runs every 15 min with `BC_LIVE_URL` unset and always passes: deploy an instance and set the variables, or turn the schedule off until there is one | 0.1 | **owner: where an instance runs (D4)** |
-| H3 | `engine-strict=true` in `.npmrc`, so `npm ci` on Node < 24 stops with a clear message instead of tests crashing with SIGSEGV in `better-sqlite3` | 0.1 | |
 
 ## Later phases (design section 9)
 
@@ -65,3 +64,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | Fastify demo backend on :3001, one vitest contract suite for both Node backends (`demo/backends/contract.ts`), compose smoke against each backend (B8b) | #36 |
 | Flask demo backend on :3002 through the Python SDK, the contract as a Python unittest mixin (`demo/backends/python_contract.py`), own distroless image, CI job (B8c) | #37 |
 | FastAPI demo backend on :3003 through the Python SDK, same Python contract, own image; CI runs both Python backends as a matrix (B8d) | #39 |
+| `engine-strict=true` in `.npmrc`: `npm ci` on Node < 24 stops with "Unsupported engine" (H3) | #41 |
