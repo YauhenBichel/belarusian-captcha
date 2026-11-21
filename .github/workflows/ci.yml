@@ -107,6 +107,8 @@ jobs:
         run: |
           python -m bc_content build --check
           python -m bc_content --root tests/fixtures/synthetic build --check
+      - name: Reviewers' report runs (without the optional belarusian-verse flags)
+        run: python -m bc_content --root tests/fixtures/synthetic report -o "$RUNNER_TEMP/review.md"
 
   demo-python:
     name: ${{ matrix.backend }} demo backend (contract tests, Python 3.13)

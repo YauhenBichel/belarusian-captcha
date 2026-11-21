@@ -10,7 +10,7 @@ at request time.
 | `stoplist.txt` | word stems that flag an item for a reviewer (section 3.5); a seed list until B10 |
 | `pack/proverbs.json` | the built pack, `bc-pack-json-v1`, live items only; **generated, do not edit** |
 | `pack/proverbs.json.sha256` | its checksum, `sha256sum -c` format |
-| `src/bc_content/` | the checks, the normaliser port, the build |
+| `src/bc_content/` | the checks, the normaliser port, the distractor rules, the build, the report |
 
 ## Adding or reviewing an item
 
@@ -23,10 +23,22 @@ at request time.
    PYTHONPATH=src .venv/bin/python -m bc_content check
    ```
 
-3. Reviewers add their records to `review:` in the same pull request, by handle. With two `ok`
+3. Write the reviewers' report and attach what it says to the pull request:
+
+   ```bash
+   PYTHONPATH=src .venv/bin/python -m bc_content report -o /tmp/review.md
+   ```
+
+   It lists items in different families that may be variants of one proverb (give them the same
+   `family` if they are), how many shape-matching distractors every item has, and the stop-list
+   flags. With `--verse` it adds spelling and stress flags from
+   [belarusian-verse](https://pypi.org/project/belarusian-verse/) (install
+   `requirements-verse.txt` first; the first run downloads its GrammarDB tables from Hugging Face).
+   The report decides nothing; a native speaker does.
+4. Reviewers add their records to `review:` in the same pull request, by handle. With two `ok`
    reviews from different handles and no `reject`, the item may become `live`. A live item whose
    words hit the stop-list also needs the reviewed stems in `allow_flagged`.
-4. Rebuild the pack and commit it with the YAML:
+5. Rebuild the pack and commit it with the YAML:
 
    ```bash
    PYTHONPATH=src .venv/bin/python -m bc_content build
@@ -42,7 +54,10 @@ CI runs `build --check`, which fails when the committed pack is not what the YAM
   `CC-BY-4.0`, `CC-BY-SA-4.0`);
 - `reviewed` and `live` need two `ok` reviews by different handles and no `reject`;
 - reviewers are handles, not names; dates are ISO dates;
-- unknown keys are errors, so a typo never silently drops a field.
+- unknown keys are errors, so a typo never silently drops a field;
+- every live item has at least three distractors of a similar shape: endings of live items from
+  other families, different after folding, with the same word count ±1 (design 3.4 rule 1, the
+  way `pickDistractors` in `server/src/challenge.ts` draws them).
 
 The server refuses a pack with live items from fewer than four families; until B10 brings reviewed
 items the pack is empty, so it is not wired into the image or the compose demo yet.
