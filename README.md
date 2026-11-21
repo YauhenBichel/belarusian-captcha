@@ -136,11 +136,12 @@ restart again. `keys remove` refuses the active key.
 ## Live monitor
 
 [`.github/workflows/smoke.yml`](.github/workflows/smoke.yml) runs
-[`scripts/live-monitor.ts`](scripts/live-monitor.ts) every 15 minutes against a running server:
+[`scripts/live-monitor.ts`](scripts/live-monitor.ts) every 15 minutes, once turned on, against a running server:
 `/healthz`, then a challenge, its proof-of-work and answer, `/solve` and `/siteverify`, as a
 dedicated monitor site. A failure opens (or comments on) an issue labelled `live-monitor`; the
-next good pass closes it. It is off until the repository variable `BC_LIVE_URL` is set; the
-header of the workflow lists every setting. The monitor reads the right answers from the content
+next good pass closes it. **The schedule is off** until there is a public instance: the workflow
+runs only when started by hand, and fails when the repository variable `BC_LIVE_URL` is unset. To
+turn it on, set the variables and secret its header lists and uncomment its `schedule`. The monitor reads the right answers from the content
 pack, so it needs the pack the server runs (today the synthetic one). Run it by hand after
 `npm run build`:
 
