@@ -33,6 +33,7 @@
   "workspaces": [
     "shared",
     "server",
-    "widget"
+    "widget",
+    "sdk/node"
   ]
 }

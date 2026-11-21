@@ -16,6 +16,8 @@
     "scripts/**/*.ts",
     "widget/src/**/*.ts",
     "widget/src/i18n/*.json",
+    "sdk/node/src/**/*.ts",
+    "sdk/node/test/**/*.ts",
     "e2e/**/*.ts"
   ]
 }

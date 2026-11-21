@@ -6,7 +6,7 @@ distorted word, or pick the picture for a word, each backed by an invisible proo
 **Капча па-беларуску:** дакончы прыказку, перапішы слова, выберы малюнак.
 
 Status: **phase 1 in progress**: the shared protocol library, the verify API server, its Docker
-image and the browser widget exist; the SDKs and reviewed content do not yet. The design is in
+image, the browser widget and the Node SDK exist; the Python SDK and reviewed content do not yet. The design is in
 [`docs/DESIGN.md`](docs/DESIGN.md); there is no released code yet.
 
 | Package | What it is |
@@ -14,6 +14,7 @@ image and the browser widget exist; the SDKs and reviewed content do not yet. Th
 | [`shared/`](shared) | ALTCHA-compatible SHA-256 proof-of-work, sealed challenges, pass tokens, the answer normaliser. WebCrypto only, so the widget can reuse it. |
 | [`server/`](server) | The verify API: `GET /api/v1/challenge`, `POST /api/v1/solve`, `POST /api/v1/siteverify`, `/healthz`, and `/metrics` on a separate port. SQLite spent store, rate levels. |
 | [`widget/`](widget) | The browser widget: vanilla TypeScript, Shadow DOM, PoW in a Web Worker, `data-sitekey` embed; 5.7 kB gzipped. |
+| [`sdk/node/`](sdk/node) | The Node SDK, `belarusian-captcha/server`: `verify(token, {secret, url, ...})` for the site's backend; fail closed by default. No runtime dependencies. |
 | [`demo/`](demo) | The static demo page (GitHub Pages) and the Playwright end-to-end tests in [`e2e/`](e2e). |
 
 The only content in the repository is **synthetic test data**
