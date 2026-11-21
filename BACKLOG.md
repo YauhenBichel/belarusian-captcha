@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`7dc5ba4` on 21 November 2026.
+`5a1035c` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -14,14 +14,16 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B8 | **`docker compose` example and demo backends** (Express, Fastify, Flask, FastAPI) | 1 | | "fresh `docker compose up` protects the demo form" |
+| B8b | **Fastify demo backend** in `demo/backends/fastify` (npm workspace), a compose service beside Express | 0.25 | | same contract as Express: serves `demo/dist`, `POST /demo/submit`, `GET /healthz`; covered by the compose smoke |
+| B8c | **Flask demo backend** in `demo/backends/flask`, through the Python SDK | 0.25 | | same contract; Python service with its own image |
+| B8d | **FastAPI demo backend** in `demo/backends/fastapi`, through the Python SDK | 0.25 | | same contract; Python service with its own image |
 | B9 | **Content pipeline** `content/` (Python, uses `belarusian-verse`): items YAML with source and licence, stop-list, distractors, pack build with checksum | 2 | | decide here whether the pack stays JSON (`bc-pack-json-v1`, what the server reads now) or moves to `pack.sqlite` as designed |
 | B10 | **300 reviewed proverbs**, two native-speaker reviews per item, recorded by handle | 10–15 h of reviewers' time | **owner: D5, who the reviewers are** | the critical path of phase 1; start finding reviewers now |
 | B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9, a first slice of B10 | design 8.3 |
 | B12 | **Docs**: `PROTOCOL.md`, `INTEGRATION.md` (incl. plain PHP), `THREAT-MODEL.md` | 1 | | design 2.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B8 (no outside dependency), then B12; B9 as soon
+Suggested order: B12 (no outside dependency), then B8b–B8d; B9 as soon
 as possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping
@@ -61,3 +63,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | Widget exported from the npm package for bundlers (`belarusian-captcha`, worker alongside, self-contained types), packed-package check in CI (B6) | #23 |
 | axe-core scan in the e2e: every widget state, four languages, light, dark and auto themes, WCAG A and AA (B7) | #25 |
 | "Report this question" in the widget: `POST /api/v1/report` takes the seal and the question index, records only the item id in `bc_item_reports_total` (B5) | #27 |
+| `docker compose` demo stack (keys, API, demo backend on 127.0.0.1) and the Express demo backend: token accepted once, replay refused, CI job from a fresh checkout (B8, part 1) | #29, #30 |
