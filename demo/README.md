@@ -53,3 +53,5 @@ submitted directly.
 
 [`e2e/`](../e2e) runs Playwright (Chromium) against this page and the verify API from source with
 the synthetic pack, an in-memory store and a throwaway all-zero key; see the root README.
+`e2e/a11y.spec.ts` scans every widget state with axe-core in the four languages and the light,
+dark and auto themes; any WCAG A or AA violation fails the run.

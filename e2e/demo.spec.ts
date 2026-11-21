@@ -5,35 +5,9 @@
 // The test plays the visitor in the browser and the site's backend through `request` (the only
 // place the test secret is used). It knows the right ending from the SYNTHETIC test pack.
 
-import { readFileSync } from 'node:fs';
-import { expect, type Page, test } from '@playwright/test';
-import { API, SECRET, SITEKEY } from './env.js';
-
-const pack = JSON.parse(
-  readFileSync(new URL('../server/test/fixtures/synthetic-pack.json', import.meta.url), 'utf8'),
-) as { items: { cut: string; ending: string; status: string }[] };
-const endingOf = new Map(pack.items.map((i) => [i.cut, i.ending]));
-
-const demoUrl = (api = API) =>
-  `/?${new URLSearchParams({ api, sitekey: SITEKEY, lang: 'en', theme: 'light' })}`;
-
-/** The prompt shown, and the right and a wrong option for it. */
-async function question(page: Page) {
-  const widget = page.locator('#captcha');
-  const radios = widget.getByRole('radio');
-  await expect(radios).toHaveCount(4);
-  const prompt = (await widget.locator('.prompt').first().textContent()) ?? '';
-  const right = endingOf.get(prompt) ?? '';
-  expect(right, `prompt "${prompt}" is in the synthetic pack`).not.toBe('');
-  const texts = await radios.allTextContents();
-  const wrong = texts.find((t) => t !== right) as string;
-  return {
-    widget,
-    prompt,
-    right: widget.getByRole('radio', { name: right, exact: true }),
-    wrong: widget.getByRole('radio', { name: wrong, exact: true }),
-  };
-}
+import { expect, test } from '@playwright/test';
+import { API, SECRET } from './env.js';
+import { demoUrl, endingOf, question } from './helpers.js';
 
 async function siteverify(response: string) {
   const res = await fetch(`${API}/api/v1/siteverify`, {
@@ -132,7 +106,7 @@ test('"I cannot do this challenge" by keyboard: a low-score pass marked as a fal
 });
 
 test('the page says clearly when the API cannot be reached', async ({ page }) => {
-  await page.goto(demoUrl('http://127.0.0.1:9'));
+  await page.goto(demoUrl({ api: 'http://127.0.0.1:9' }));
   const banner = page.locator('#api-status');
   await expect(banner).toHaveAttribute('data-state', 'down');
   await expect(banner).toHaveAttribute('role', 'alert');
