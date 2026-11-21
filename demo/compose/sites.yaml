@@ -1,0 +1,20 @@
+# The demo site of compose.yaml only: the demo page served by a demo backend on
+# http://localhost:3000. Not a deployment example: see server/sites.example.yaml for that.
+#
+# The secret is a fixed, published, low-entropy demo value, "compose-demo-secret-not-real";
+# secret_sha256 is its SHA-256 and compose.yaml hands the same value to the demo backend. It is
+# safe only because the stack listens on 127.0.0.1 and serves the SYNTHETIC test pack. Never
+# reuse it, and never expose this stack to a network. The sealing keys are not fixed: they are
+# made on the first `docker compose up` (demo/compose/init-keys.mjs).
+sites:
+  - sitekey: demo-sitekey-0001
+    secret_sha256: "376b1516e907025ba5e8b6f84c2dfbbe73de384656d37ae2f6c479a8c1cf54d9"
+    # Plain http is accepted for localhost and 127.0.0.1 only.
+    hostnames: ["localhost:3000", "127.0.0.1:3000"]
+    types: { proverb: 1 }
+    script: cyrl
+    # A light PoW, so the demo answers fast on any laptop; the protocol is the production one.
+    pow: { base: 20000, max_level: 4 }
+    rate: { r0_per_min: 30, hard_per_min: 300, siteverify_per_min: 600 }
+    token_ttl_s: 300
+    challenge_ttl_s: 600
