@@ -1,0 +1,5 @@
+# Runtime dependencies of the FastAPI demo backend (the Python SDK has none; the image copies it).
+# Regenerate requirements.txt with (versions at least two weeks old):
+#   uv pip compile --universal --python-version 3.13 --generate-hashes --exclude-newer <date two weeks back> requirements.in -o requirements.txt
+fastapi==0.162.2
+uvicorn==0.54.0

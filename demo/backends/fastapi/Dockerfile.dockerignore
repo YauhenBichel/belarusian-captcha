@@ -1,0 +1,24 @@
+# Build context of demo/backends/fastapi/Dockerfile (the repository root): only what it copies.
+**
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!shared/package.json
+!shared/tsconfig.json
+!shared/src/**
+!server/package.json
+!widget/package.json
+!widget/tsconfig.json
+!widget/build.mjs
+!widget/src/**
+!sdk/node/package.json
+!sdk/python/src/belarusian_captcha/*.py
+!sdk/python/src/belarusian_captcha/py.typed
+!demo/build.mjs
+!demo/src/**
+!demo/backends/fastapi/requirements.txt
+!demo/backends/fastapi/src/demo_fastapi/*.py
+!LICENSE
+!NOTICE
+**/*.test.ts
+**/test-helpers.ts
