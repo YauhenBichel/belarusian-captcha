@@ -3,7 +3,7 @@
 
 import Database from 'better-sqlite3';
 
-export type SpentKind = 'challenge' | 'token';
+export type SpentKind = 'challenge' | 'token' | 'report';
 
 export interface SpentStore {
   /**

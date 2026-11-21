@@ -11,5 +11,8 @@
   "rateLimited": "Too many attempts. Wait a minute and try again.",
   "failed": "The check could not be completed.",
   "retry": "Try again",
-  "cannot": "I cannot do this challenge"
+  "cannot": "I cannot do this challenge",
+  "report": "Report this question",
+  "reported": "Thank you. Someone will check this question.",
+  "reportFailed": "The report could not be sent."
 }

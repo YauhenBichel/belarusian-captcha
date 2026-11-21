@@ -121,6 +121,9 @@
     log('solved', `PoW took ${e.detail.powMs} ms; token payload ${tokenPayload(e.detail.token)}`);
   });
   host.addEventListener('bc-rejected', (e) => log('rejected', e.detail.error));
+  host.addEventListener('bc-reported', (e) =>
+    log('reported', `question ${e.detail.question + 1}; the server records only its item id`),
+  );
   host.addEventListener('bc-error', (e) => {
     log('error', e.detail.error);
     if (e.detail.error === 'network-error') showDown('A request from the widget failed.');

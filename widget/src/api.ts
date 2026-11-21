@@ -1,11 +1,12 @@
 // The widget's calls to the verify API (docs/DESIGN.md section 5.1): GET /challenge, GET /fallback
-// (the accessible way through, section 6.3) and POST /solve. No cookies are sent. A network failure (the API cannot be reached, or CORS refused
+// (the accessible way through, section 6.3), POST /solve and POST /report (section 11). No cookies are sent. A network failure (the API cannot be reached, or CORS refused
 // the answer) is told apart from an API error code, so the widget can say which one it was.
 
 import {
   API_PREFIX,
   type ChallengeResponse,
   type ErrorCode,
+  type ReportRequest,
   type SolveRequest,
 } from '@belarusian-captcha/shared';
 
@@ -92,6 +93,16 @@ export class ApiClient {
     }
     const next = (body as { next?: unknown } | undefined)?.next;
     return { ok: false, error: errorCode(body), ...(isChallenge(next) ? { next } : {}) };
+  }
+
+  /** Flags one question of the challenge on screen; the server records only its item id. */
+  async report(req: ReportRequest): Promise<void> {
+    const res = await this.#send(`${this.#base}${API_PREFIX}/report`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+    if (!res.ok) throw new ApiError(errorCode(await readJson(res)), res.status);
   }
 
   async #send(url: string, init: RequestInit): Promise<Response> {
