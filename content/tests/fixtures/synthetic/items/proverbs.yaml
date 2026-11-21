@@ -1,0 +1,121 @@
+# SYNTHETIC TEST DATA - not Belarusian content. Placeholder strings only; `python -m bc_content --root
+# tests/fixtures/synthetic build` writes pack/ next to it; the server unit tests load that pack.
+version: "synthetic-1"
+items:
+  - id: syn-a1
+    family: fam-a
+    text: "SYNTHETIC cut a1, ending a 1."
+    cut: "SYNTHETIC cut a1,"
+    ending: "ending a 1"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: easy
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-a2
+    family: fam-a
+    text: "SYNTHETIC cut a2, ending a 2."
+    cut: "SYNTHETIC cut a2,"
+    ending: "ending a 2"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: normal
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-b1
+    family: fam-b
+    text: "SYNTHETIC cut b1, ending b 1."
+    cut: "SYNTHETIC cut b1,"
+    ending: "ending b 1"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: easy
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-b2
+    family: fam-b
+    text: "SYNTHETIC cut b2, ending b 2."
+    cut: "SYNTHETIC cut b2,"
+    ending: "ending b 2"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: normal
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-c1
+    family: fam-c
+    text: "SYNTHETIC cut c1, ending c 1."
+    cut: "SYNTHETIC cut c1,"
+    ending: "ending c 1"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: easy
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-c2
+    family: fam-c
+    text: "SYNTHETIC cut c2, ending c 2."
+    cut: "SYNTHETIC cut c2,"
+    ending: "ending c 2"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: normal
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-d1
+    family: fam-d
+    text: "SYNTHETIC cut d1, ending d 1."
+    cut: "SYNTHETIC cut d1,"
+    ending: "ending d 1"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: easy
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-d2
+    family: fam-d
+    text: "SYNTHETIC cut d2, ending d 2."
+    cut: "SYNTHETIC cut d2,"
+    ending: "ending d 2"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: normal
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-e1
+    family: fam-e
+    text: "SYNTHETIC cut e1, ending e 1."
+    cut: "SYNTHETIC cut e1,"
+    ending: "ending e 1"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: easy
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: live
+  - id: syn-e2
+    family: fam-e
+    text: "SYNTHETIC cut e2, ending e 2."
+    cut: "SYNTHETIC cut e2,"
+    ending: "ending e 2"
+    source: { work: Synthetic test data, page: 1, licence: CC0-1.0 }
+    difficulty: normal
+    review:
+      - { reviewer: rev-one, verdict: ok, date: 2026-11-01 }
+      - { reviewer: rev-two, verdict: ok, date: 2026-11-02 }
+    status: retired
+  - id: syn-draft
+    text: "SYNTHETIC draft, never in the pack."
+    cut: "SYNTHETIC draft,"
+    ending: "never in the pack"
+    source: { work: Synthetic test data, licence: CC0-1.0 }
+    difficulty: hard
+    status: draft

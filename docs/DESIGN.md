@@ -162,7 +162,7 @@ flowchart LR
   end
 
   subgraph Content["Content pack (read-only, versioned)"]
-    Pack[("pack.sqlite<br/>proverbs, words, picture index")]
+    Pack[("pack.json: proverbs (phase 1)<br/>pack.sqlite: words, picture index (phase 2+)")]
     Images[("images/<br/>picture originals")]
     Fonts[("fonts/ (OFL)")]
   end
@@ -252,7 +252,7 @@ belarusian-captcha/
 | Piece | Choice | Why |
 |---|---|---|
 | API language | **TypeScript on Node 24 LTS** (D1) | the widget must be TypeScript anyway, so the protocol types, the normaliser and the PoW code are one implementation used on both sides; ALTCHA's MIT `altcha-lib` is TypeScript; Node's built-in `crypto` covers AES-GCM, HMAC and SHA-256; one small image for sites that are mostly PHP or Node hosts |
-| Content pipeline | **Python** | it runs offline, and the owner's Belarusian tools are Python: `belarusian-verse` gives stress, GrammarDB forms, frequency and spelling checks; the pipeline's output is a plain SQLite file the Node server reads |
+| Content pipeline | **Python** | it runs offline, and the owner's Belarusian tools are Python: `belarusian-verse` gives stress, GrammarDB forms, frequency and spelling checks; the pipeline's output is a JSON pack for the proverbs (phase 1) and a plain SQLite file once the word lists arrive (phase 2), both read by the Node server ([ADR 0001](architecture/0001-content-pack-format.md)) |
 | HTTP framework | Fastify | JSON-schema validation of every request, mature, fast; no framework in the widget |
 | Image rendering | `@napi-rs/canvas` (prebuilt Skia, no system libraries) | renders the distorted word and perturbs pictures in-process with no ImageMagick or native build step |
 | Fonts | OFL-licensed fonts with full Cyrillic and Łacinka coverage (ł, ć, č, š, ž, ŭ, ń, ś, ź) | free to ship in a public image |

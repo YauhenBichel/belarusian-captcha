@@ -14,12 +14,13 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B9 | **Content pipeline** `content/` (Python, uses `belarusian-verse`): items YAML with source and licence, stop-list, distractors, pack build with checksum | 2 | | decide here whether the pack stays JSON (`bc-pack-json-v1`, what the server reads now) or moves to `pack.sqlite` as designed |
+| B9a | **Content pipeline core** `content/` (Python, hash-pinned PyYAML): `items/proverbs.yaml` checks (unique ids, `cut` + `ending` = `text`, source and licence, `live` needs two reviews by different handles, `retired` stays), normaliser port tested on `tests/fixtures/normalise.json`, stop-list flags, `build` → `bc-pack-json-v1` with live items only, sorted, plus SHA-256; CI rebuilds and fails on a diff; a server test loads the built pack | 1 | | pack stays JSON ([ADR 0001](docs/architecture/0001-content-pack-format.md)); until B10 there are no live items, so the built pack is not wired into the image or compose yet |
+| B9b | **Distractor checks and review report**: `family` suggestions by normalised overlap, each live item has 3+ endings of similar shape (word count ±1) from other families, `belarusian-verse` spelling and stress flags in a report for reviewers (optional extra, not a CI gate: it downloads GrammarDB tables) | 1 | B9a | design 3.4 rules 1–3; the judge-model ambiguity screen waits for B10 items |
 | B10 | **300 reviewed proverbs**, two native-speaker reviews per item, recorded by handle | 10–15 h of reviewers' time | **owner: D5, who the reviewers are** | the critical path of phase 1; start finding reviewers now |
-| B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9, a first slice of B10 | design 8.3 |
+| B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9a, B9b, a first slice of B10 | design 8.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B9 as soon
+Suggested order: B9a and B9b as soon
 as possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping

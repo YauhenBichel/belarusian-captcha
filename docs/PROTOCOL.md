@@ -299,5 +299,6 @@ maxnumber = base × 2^level
 - **Script**: only `cyrl`. Łacinka content is phase 3.
 - **Store**: SQLite only. Redis is phase 3, so one replica only.
 - **PoW**: SHA-256 only. The memory-hard option is phase 3.
-- **Content pack**: the server reads a JSON pack (`bc-pack-json-v1`), not the designed
-  `pack.sqlite`; backlog B9 decides.
+- **Content pack**: the server reads a JSON pack (`bc-pack-json-v1`) for the proverbs;
+  `pack.sqlite` comes with the word lists in phase 2
+  ([ADR 0001](architecture/0001-content-pack-format.md)).

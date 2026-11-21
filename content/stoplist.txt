@@ -1,0 +1,60 @@
+# Stop-list of the content pipeline (docs/DESIGN.md 3.5): word stems that flag an item for a
+# reviewer. A stem matches every word that starts with it after folding (stress marks, case, ў, и
+# and look-alikes, as in section 3.3), so one stem covers the inflected forms. A hit decides
+# nothing: a draft is flagged, and a live item needs the stem in its `allow_flagged`, written by a
+# reviewer who checked it. Short stems catch innocent words too; that is the intended direction.
+#
+# SEED LIST, not reviewed by a native speaker yet: extend it with B10.
+
+# Peoples and neighbours, as old collections name them (slurs and stereotypes).
+жыд
+яўрэ
+габрэ
+цыган
+лях
+ляш
+паляк
+маскал
+кацап
+літвін
+немц
+немец
+татар
+турак
+# Religion (D6 decides whether mild folk phrases may stay).
+бог
+божа
+госпад
+чорт
+д'ябал
+царкв
+касцёл
+поп
+ксёндз
+# Politics, state and war, in either direction.
+вайн
+вайск
+салдат
+улад
+цар
+пан
+прэзідэнт
+партыз
+савец
+бчб
+сцяг
+пагон
+# Cruelty, violence, death.
+забі
+забіва
+біць
+б'е
+кроў
+смерц
+вешац
+тапіц
+# Family and women in old sayings (misogyny is common there).
+баба
+жонк
+дзеўк
+мачых
