@@ -19,6 +19,7 @@
     "widget/src/i18n/*.json",
     "sdk/node/src/**/*.ts",
     "sdk/node/test/**/*.ts",
+    "demo/backends/contract.ts",
     "demo/backends/*/src/**/*.ts",
     "demo/backends/*/test/**/*.ts",
     "e2e/**/*.ts"

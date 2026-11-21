@@ -1,9 +1,13 @@
-# The demo stack: `docker compose up --build`, then open http://localhost:3000/.
+# The demo stack: `docker compose up --build`, then open http://localhost:3000/ (Express),
+# http://localhost:3001/ (Fastify) or http://localhost:3002/ (Flask).
 #
-#   keys  makes the sealing key file on the data volume on the first start, then exits
-#   api   the verify API (the server image from ./Dockerfile), http://localhost:8080
-#   demo  the Express demo backend: serves the demo page and checks its form's token with
-#         belarusian-captcha/server, as a site's backend would
+#   keys          makes the sealing key file on the data volume on the first start, then exits
+#   api           the verify API (the server image from ./Dockerfile), http://localhost:8080
+#   demo          the Express demo backend: serves the demo page and checks its form's token with
+#                 belarusian-captcha/server, as a site's backend would
+#   demo-fastify  the same contract on Fastify (demo/backends/contract.ts), http://localhost:3001
+#   demo-flask    the same contract on Flask with the Python SDK (demo/backends/python_contract.py),
+#                 http://localhost:3002
 #
 # A LOCAL DEMO, not a deployment: everything listens on 127.0.0.1 only, the content is the
 # SYNTHETIC test pack, and the demo site's secret is a published demo value (demo/compose/
@@ -68,6 +72,40 @@ services:
       BC_SECRET: compose-demo-secret-not-real
     ports:
       - "127.0.0.1:3000:3000"
+
+  demo-fastify:
+    <<: *hardening
+    image: belarusian-captcha-demo-fastify:compose
+    build:
+      context: .
+      dockerfile: demo/backends/fastify/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BC_API_URL: http://api:8080
+      BC_SITEKEY: demo-sitekey-0001
+      # The published demo secret, as for the Express service above.
+      BC_SECRET: compose-demo-secret-not-real
+    ports:
+      - "127.0.0.1:3001:3001"
+
+  demo-flask:
+    <<: *hardening
+    image: belarusian-captcha-demo-flask:compose
+    build:
+      context: .
+      dockerfile: demo/backends/flask/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BC_API_URL: http://api:8080
+      BC_SITEKEY: demo-sitekey-0001
+      # The published demo secret, as for the Express service above.
+      BC_SECRET: compose-demo-secret-not-real
+    ports:
+      - "127.0.0.1:3002:3002"
 
 volumes:
   data:

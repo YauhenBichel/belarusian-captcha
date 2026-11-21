@@ -38,6 +38,7 @@
     "server",
     "widget",
     "sdk/node",
-    "demo/backends/express"
+    "demo/backends/express",
+    "demo/backends/fastify"
   ]
 }
