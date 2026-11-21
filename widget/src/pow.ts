@@ -3,14 +3,13 @@
 // Worker (worker.ts) and, when no worker can be started, on the main thread in yielding slices.
 
 import type { PowChallenge } from '@belarusian-captcha/shared';
+import type { PowFound, PowJob, PowSolver, PowTask, Same } from './types.js';
 
-export type PowTask = Pick<PowChallenge, 'challenge' | 'salt' | 'maxnumber'>;
+export type { PowFound, PowJob, PowSolver, PowTask };
 
-export interface PowFound {
-  number: number;
-  /** Milliseconds the search took. */
-  took: number;
-}
+// PowTask is a copy (types.ts has no imports); this fails the type-check if it drifts.
+const powTaskInStep: Same<PowTask, Pick<PowChallenge, 'challenge' | 'salt' | 'maxnumber'>> = true;
+void powTaskInStep;
 
 export interface SearchOptions {
   /** Checked every `sliceSize` hashes; the search stops and returns null once it is true. */
@@ -53,13 +52,6 @@ export async function searchPow(task: PowTask, opts: SearchOptions = {}): Promis
 }
 
 /** A running search: its result, and a way to stop it. */
-export interface PowJob {
-  result: Promise<PowFound | null>;
-  cancel(): void;
-}
-
-export type PowSolver = (task: PowTask) => PowJob;
-
 const nextTask = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /** Main-thread search in slices of 500 hashes, so the page stays responsive. */

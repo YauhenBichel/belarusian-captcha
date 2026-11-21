@@ -34,6 +34,9 @@ Each release lists their `sha384` hashes in its notes and in `widget-sri.json`; 
 build, so update it when the API's widget changes, or leave `integrity` out (docs/DESIGN.md
 section 6.1).
 
+With a bundler, `import { render } from 'belarusian-captcha'` gives the same widget as an ES module
+(see [`sdk/node/README.md`](../sdk/node/README.md)).
+
 The widget adds `<input type="hidden" name="bc-response">` to the form; the site's backend sends
 its value to `POST /api/v1/siteverify` with the secret.
 

@@ -5,10 +5,15 @@
 import * as registry from './registry.js';
 import type { RenderOptions } from './widget.js';
 
-export type { WidgetErrorCode } from './api.js';
-export type { Lang } from './i18n.js';
-export type { PowFound, PowJob, PowSolver, PowTask } from './pow.js';
 export { getResponse, optionsFromElement, remove, reset, SELECTOR } from './registry.js';
+export type {
+  Lang,
+  PowFound,
+  PowJob,
+  PowSolver,
+  PowTask,
+  WidgetErrorCode,
+} from './types.js';
 export {
   CaptchaWidget,
   RESPONSE_FIELD,

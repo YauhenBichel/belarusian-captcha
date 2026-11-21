@@ -9,8 +9,13 @@ import {
   type SolveRequest,
 } from '@belarusian-captcha/shared';
 
-/** An error code from the API, or one of the widget's own. */
-export type WidgetErrorCode = ErrorCode | 'network-error' | 'bad-response' | 'pow-failed';
+import type { ApiErrorCode, Same, WidgetErrorCode } from './types.js';
+
+export type { WidgetErrorCode };
+
+// ApiErrorCode is a copy (types.ts has no imports); this fails the type-check if it drifts.
+const errorCodesInStep: Same<ApiErrorCode, ErrorCode> = true;
+void errorCodesInStep;
 
 export class ApiError extends Error {
   override name = 'ApiError';

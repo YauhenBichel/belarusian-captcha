@@ -1,7 +1,7 @@
 // The JS API (docs/DESIGN.md section 6.1): render(el, opts), reset(), getResponse(), and the
 // `data-*` embed: <div class="belarusian-captcha" data-sitekey="..."> rendered by renderAll().
 
-import type { WidgetErrorCode } from './api.js';
+import type { WidgetErrorCode } from './types.js';
 import { CaptchaWidget, type RenderOptions, type Theme } from './widget.js';
 
 export const SELECTOR = '.belarusian-captcha[data-sitekey]';
