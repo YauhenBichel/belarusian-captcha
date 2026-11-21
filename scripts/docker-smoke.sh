@@ -2,11 +2,13 @@
 # Smoke test for the server image: start it the way an operator would (read-only root filesystem,
 # no capabilities, mounted sites, keys and pack, a volume for /data), wait for the HEALTHCHECK,
 # read /healthz and /metrics, then stop it with SIGTERM and require a clean drain (exit code 0).
+# The key file and a site are made with bc-admin inside the same image, so the CLI is tested where
+# operators run it.
 #
 #   scripts/docker-smoke.sh [image]        (default: belarusian-captcha-server:ci)
 #
-# The key file is a throwaway, all-zero test key ('A' x 43 in base64url): it is not a secret and
-# must never be used outside this test. The pack is the synthetic test fixture.
+# The key file and the site secret are throwaways made for this run and deleted with it. The pack
+# is the synthetic test fixture.
 set -euo pipefail
 
 image="${1:-belarusian-captcha-server:ci}"
@@ -30,8 +32,18 @@ trap cleanup EXIT
 
 fail() { echo "::error::smoke: $*"; exit 1; }
 
-printf '{"active":"k1","keys":{"k1":"%s"}}\n' "$(printf 'A%.0s' $(seq 1 43))" > "$work/bc-keys.json"
+# bc-admin as an operator runs it: the image's node, the work folder mounted, run as this user.
+admin() {
+  docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+    --user "$(id -u):$(id -g)" -v "$work:/work" "$image" server/dist/admin.js "$@"
+}
+admin keys init --keys /work/bc-keys.json >/dev/null || fail "bc-admin keys init failed"
+admin keys rotate --keys /work/bc-keys.json >/dev/null 2>&1 || fail "bc-admin keys rotate failed"
 cp "$root/server/sites.example.yaml" "$work/sites.yaml"
+# Prints a throwaway site secret; this test does not call siteverify, so it is discarded.
+admin site add --sites /work/sites.yaml --host smoke.localhost >/dev/null 2>&1 || fail "bc-admin site add failed"
+admin site list --sites /work/sites.yaml | grep -q 'smoke.localhost' || fail "bc-admin site list does not show the new site"
+echo "bc-admin: keys init, keys rotate, site add, site list ok"
 cp "$root/server/test/fixtures/synthetic-pack.json" "$work/pack.json"
 # The container runs as uid 65532; the mounted files must be readable by it.
 chmod 0644 "$work"/*

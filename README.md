@@ -43,7 +43,7 @@ Run the server locally (see [`server/src/main.ts`](server/src/main.ts) for every
 
 ```bash
 npm run build
-node -e 'console.log(JSON.stringify({active:"k1",keys:{k1:require("crypto").randomBytes(32).toString("base64")}}))' > keys.json
+node server/dist/admin.js keys init --keys keys.json   # mode 0600; the key is never printed
 cd server && BC_SITES=sites.example.yaml BC_KEYS_FILE=../keys.json \
   BC_PACK=test/fixtures/synthetic-pack.json BC_STORE=sqlite:../bc.sqlite node dist/main.js
 ```
@@ -78,6 +78,32 @@ metrics to `0.0.0.0` inside the container; every variable in
 match your proxy (the example trusts one hop). Build it yourself with `docker build -t
 belarusian-captcha-server .` at the repository root; `scripts/docker-smoke.sh <image>` runs the
 same smoke test as CI.
+
+### Sites and keys: `bc-admin`
+
+`bc-admin` (`server/dist/admin.js`, in the image too) writes `sites.yaml` and the key file. It
+checks every change with the server's own parser before writing, keeps the comments in
+`sites.yaml`, and never prints key material. `--dry-run` shows a change without writing it.
+
+```bash
+admin() { docker run --rm --read-only --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+  ghcr.io/yauhenbichel/belarusian-captcha-server:<version> server/dist/admin.js "$@"; }
+
+admin keys init --keys /work/bc-keys.json
+admin site add --sites /work/sites.yaml --host example.by --host www.example.by
+admin site rotate-secret <sitekey> --sites /work/sites.yaml
+admin site list --sites /work/sites.yaml
+```
+
+`site add` and `site rotate-secret` print the site's secret once; give it to the site's backend
+for `siteverify`. Only its SHA-256 hash is stored. The server reads both files at start, so
+restart it after a change. Make the files readable by uid 65532 before mounting them.
+
+Rotate the sealing key with a two-key overlap: `admin keys rotate --keys /work/bc-keys.json`
+adds `kN+1` and makes it active, while tokens sealed with the old key are still accepted.
+Restart every server, wait for the longest `token_ttl_s` and `challenge_ttl_s` (10 minutes by
+default), then `admin keys remove <old kid>` and
+restart again. `keys remove` refuses the active key.
 
 ## Live monitor
 
