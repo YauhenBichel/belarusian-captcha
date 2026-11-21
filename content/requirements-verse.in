@@ -1,0 +1,5 @@
+# The optional spelling and stress report (`python -m bc_content report --verse`). Not a CI gate:
+# belarusian-verse downloads its GrammarDB tables from Hugging Face on first use. Regenerate with:
+#   uv pip compile --universal --python-version 3.11 --generate-hashes --exclude-newer <today-14d> requirements-verse.in -o requirements-verse.txt
+-r requirements.in
+belarusian-verse[spelling]==0.3.0

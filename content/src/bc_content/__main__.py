@@ -3,6 +3,7 @@
     python -m bc_content check            # errors stop it (exit 1); stop-list flags are printed
     python -m bc_content build            # check, then write pack/proverbs.json and its .sha256
     python -m bc_content build --check    # CI: fail if the committed pack differs from a build
+    python -m bc_content report [--verse] [-o FILE]   # Markdown report for reviewers
 
 Paths are relative to --root, the content/ folder by default.
 """
@@ -13,8 +14,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import build, items
+from . import build, distractors, items
+from . import report as review
 from .stoplist import StopList
+from .verse import VerseUnavailable, load_checker
 
 CONTENT = Path(__file__).resolve().parents[2]
 ITEMS = Path("items/proverbs.yaml")
@@ -31,10 +34,19 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("check", help="check the items")
     b = sub.add_parser("build", help="check the items and write the pack")
     b.add_argument("--check", action="store_true", help="compare with the committed pack only")
+    r = sub.add_parser("report", help="write a Markdown report for reviewers")
+    r.add_argument(
+        "--verse", action="store_true", help="add belarusian-verse spelling and stress flags"
+    )
+    r.add_argument("-o", "--out", type=Path, help="write to this file instead of stdout")
     args = ap.parse_args(argv)
 
     root: Path = args.root
     report = items.load(root / ITEMS, StopList.load(root / STOPLIST))
+    if args.command == "report":
+        return _report(report, args.verse, args.out)
+    if not report.errors:
+        report.errors += distractors.pool_errors(report.items)
     for flag in report.flags:
         print(f"flag: {flag}")
     for error in report.errors:
@@ -78,6 +90,25 @@ def main(argv: list[str] | None = None) -> int:
     sha_path.write_text(sha, encoding="utf-8")
     print(f"wrote {PACK} ({len(report.live)} live items) and {sha_path.name}")
     return 0
+
+
+def _report(report: items.Report, verse: bool, out: Path | None) -> int:
+    checker = None
+    if verse:
+        try:
+            checker = load_checker()
+        except VerseUnavailable as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
+    text = review.render(report, str(ITEMS), checker)
+    for error in report.errors:
+        print(f"error: {error}", file=sys.stderr)
+    if out is None:
+        sys.stdout.write(text)
+    else:
+        out.write_text(text, encoding="utf-8")
+        print(f"wrote {out}", file=sys.stderr)
+    return 1 if report.errors else 0
 
 
 if __name__ == "__main__":
