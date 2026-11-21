@@ -45,7 +45,9 @@ its site secret is a published demo value. `docker compose down -v` removes it w
 
 ## Development
 
-Node 24 (see `.nvmrc`). One npm workspace root; every package's tests run from the root.
+Node 24 (see `.nvmrc`); `.npmrc` sets `engine-strict`, so `npm ci` on an older Node stops with
+"Unsupported engine" instead of the tests crashing later in `better-sqlite3`. One npm workspace
+root; every package's tests run from the root.
 
 ```bash
 npm ci
