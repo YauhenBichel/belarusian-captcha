@@ -1,0 +1,22 @@
+{
+  "name": "@belarusian-captcha/demo-express",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Demo backend (Express): serves the demo page and checks its form's pass token with belarusian-captcha/server. An example, not published.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "belarusian-captcha": "0.0.0",
+    "express": "5.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6"
+  }
+}
