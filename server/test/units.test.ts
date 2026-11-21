@@ -132,6 +132,31 @@ describe('parsePack', () => {
     doc.items.push(doc.items[0]);
     expect(() => parsePack(JSON.stringify(doc))).toThrow(/duplicate/);
   });
+
+  it('reads the pack the content pipeline builds', async () => {
+    // content/tests/fixtures/synthetic/pack/proverbs.json is what the content pipeline builds from
+    // the synthetic items next to it (the Python tests and CI check that byte for byte), so this
+    // test keeps the pipeline's output and this loader in step.
+    const { readFileSync } = await import('node:fs');
+    const url = new URL(
+      '../../content/tests/fixtures/synthetic/pack/proverbs.json',
+      import.meta.url,
+    );
+    const pack = parsePack(readFileSync(url, 'utf8'));
+    expect(pack.version).toBe('synthetic-1');
+    expect(pack.live.map((x) => x.id)).toEqual([
+      'syn-a1',
+      'syn-a2',
+      'syn-b1',
+      'syn-b2',
+      'syn-c1',
+      'syn-c2',
+      'syn-d1',
+      'syn-d2',
+      'syn-e1',
+    ]);
+    expect(new Set(pack.live.map((x) => x.family)).size).toBe(5);
+  });
 });
 
 describe('challenge building', () => {

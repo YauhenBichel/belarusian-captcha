@@ -1,0 +1,98 @@
+{
+  "attribution": "belarusian-captcha content pack, CC BY-SA 4.0. Each item names its source; see NOTICE in https://github.com/YauhenBichel/belarusian-captcha",
+  "format": "bc-pack-json-v1",
+  "items": [
+    {
+      "cut": "SYNTHETIC cut a1,",
+      "difficulty": "easy",
+      "ending": "ending a 1",
+      "family": "fam-a",
+      "id": "syn-a1",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut a2,",
+      "difficulty": "normal",
+      "ending": "ending a 2",
+      "family": "fam-a",
+      "id": "syn-a2",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut b1,",
+      "difficulty": "easy",
+      "ending": "ending b 1",
+      "family": "fam-b",
+      "id": "syn-b1",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut b2,",
+      "difficulty": "normal",
+      "ending": "ending b 2",
+      "family": "fam-b",
+      "id": "syn-b2",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut c1,",
+      "difficulty": "easy",
+      "ending": "ending c 1",
+      "family": "fam-c",
+      "id": "syn-c1",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut c2,",
+      "difficulty": "normal",
+      "ending": "ending c 2",
+      "family": "fam-c",
+      "id": "syn-c2",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut d1,",
+      "difficulty": "easy",
+      "ending": "ending d 1",
+      "family": "fam-d",
+      "id": "syn-d1",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut d2,",
+      "difficulty": "normal",
+      "ending": "ending d 2",
+      "family": "fam-d",
+      "id": "syn-d2",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    },
+    {
+      "cut": "SYNTHETIC cut e1,",
+      "difficulty": "easy",
+      "ending": "ending e 1",
+      "family": "fam-e",
+      "id": "syn-e1",
+      "licence": "CC0-1.0",
+      "source": "Synthetic test data, p. 1",
+      "status": "live"
+    }
+  ],
+  "licence": "CC-BY-SA-4.0",
+  "version": "synthetic-1"
+}
