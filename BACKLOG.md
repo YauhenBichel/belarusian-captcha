@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`3f25261` on 21 November 2026.
+`bed06eb` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -14,7 +14,6 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B4 | **Serve the widget from the API**: `GET /widget.js`, `/widget.worker.js` with `Cache-Control`, SRI hashes published with the release | 0.5 | | design 5.1; the demo loads the bundle itself today |
 | B5 | **"Report this question" link** in the widget: sends only the item id | 0.5 | | design section 11; per-item `bc_item_answers_total` metrics already exist |
 | B6 | **Widget export from the npm package** (`belarusian-captcha` for bundlers) | 0.25 | | design 6.4; the package now exports only `./server` |
 | B7 | **axe check** in the Playwright e2e | 0.25 | | the "axe clean" condition of phase 1 |
@@ -25,7 +24,7 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 | B12 | **Docs**: `PROTOCOL.md`, `INTEGRATION.md` (incl. plain PHP), `THREAT-MODEL.md` | 1 | | design 2.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B4, B6, B7, B5 (no outside dependency), then B8, B12; B9 as soon
+Suggested order: B6, B7, B5 (no outside dependency), then B8, B12; B9 as soon
 as possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping
@@ -61,3 +60,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | `bc-admin` CLI: sealing keys with two-key overlap, add a site (B2) | #16 |
 | Accessible fallback: `GET /api/v1/fallback`, PoW-only pass, score 0.3, `fallback: true` in siteverify (B3, D3 option B; C needs no work) | #17 |
 | Python SDK `belarusian-captcha` (B1), cases shared with the Node SDK in `tests/fixtures/siteverify.json` | #19 |
+| Widget served by the API: `/widget.js`, `/widget.worker.js`, checked against `sri.json` at start, ETag and 304; release attaches `widget-sri.json` (B4) | #21 |
