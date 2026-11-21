@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`636c908` on 21 November 2026.
+`46577c1` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -15,7 +15,6 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
 | B5 | **"Report this question" link** in the widget: sends only the item id | 0.5 | | design section 11; per-item `bc_item_answers_total` metrics already exist |
-| B7 | **axe check** in the Playwright e2e | 0.25 | | the "axe clean" condition of phase 1 |
 | B8 | **`docker compose` example and demo backends** (Express, Fastify, Flask, FastAPI) | 1 | | "fresh `docker compose up` protects the demo form" |
 | B9 | **Content pipeline** `content/` (Python, uses `belarusian-verse`): items YAML with source and licence, stop-list, distractors, pack build with checksum | 2 | | decide here whether the pack stays JSON (`bc-pack-json-v1`, what the server reads now) or moves to `pack.sqlite` as designed |
 | B10 | **300 reviewed proverbs**, two native-speaker reviews per item, recorded by handle | 10–15 h of reviewers' time | **owner: D5, who the reviewers are** | the critical path of phase 1; start finding reviewers now |
@@ -23,7 +22,7 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 | B12 | **Docs**: `PROTOCOL.md`, `INTEGRATION.md` (incl. plain PHP), `THREAT-MODEL.md` | 1 | | design 2.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B7, B5 (no outside dependency), then B8, B12; B9 as soon
+Suggested order: B5 (no outside dependency), then B8, B12; B9 as soon
 as possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping
@@ -61,3 +60,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | Python SDK `belarusian-captcha` (B1), cases shared with the Node SDK in `tests/fixtures/siteverify.json` | #19 |
 | Widget served by the API: `/widget.js`, `/widget.worker.js`, checked against `sri.json` at start, ETag and 304; release attaches `widget-sri.json` (B4) | #21 |
 | Widget exported from the npm package for bundlers (`belarusian-captcha`, worker alongside, self-contained types), packed-package check in CI (B6) | #23 |
+| axe-core scan in the e2e: every widget state, four languages, light, dark and auto themes, WCAG A and AA (B7) | #25 |
