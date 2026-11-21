@@ -9,6 +9,11 @@ Status: **phase 1 in progress**: the shared protocol library, the verify API ser
 image, the browser widget and the Node and Python SDKs exist; reviewed content does not yet. The design is in
 [`docs/DESIGN.md`](docs/DESIGN.md); there is no released code yet.
 
+To add the captcha to a site, read [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (widget, Node,
+Python, plain PHP, any language over HTTP). The wire format is in
+[`docs/PROTOCOL.md`](docs/PROTOCOL.md); what it stops and what it does not is in
+[`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md).
+
 | Package | What it is |
 | --- | --- |
 | [`shared/`](shared) | ALTCHA-compatible SHA-256 proof-of-work, sealed challenges, pass tokens, the answer normaliser. WebCrypto only, so the widget can reuse it. |

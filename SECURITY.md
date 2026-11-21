@@ -1,7 +1,8 @@
 # Security
 
-belarusian-captcha is at the design stage; there is no released code yet. This policy applies from
-the first release on.
+belarusian-captcha is in phase 1: the code exists but nothing is released yet. This policy applies
+to the `main` branch now and to every release from the first on. What the captcha protects and what
+it leaves to the site is in [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md).
 
 ## Reporting a problem
 
@@ -21,7 +22,7 @@ within a week.
 ## What does not
 
 A bot, an OCR engine, a language model or a solving service passing a challenge is **expected and
-documented** (see the threat model in `docs/DESIGN.md`). Report it as a normal issue with the solve
+documented** (see [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)). Report it as a normal issue with the solve
 rate you measured; it is a vulnerability only if it beats the published benchmark by a wide margin
 through a flaw in this project rather than through a better model.
 
