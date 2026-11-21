@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`1b5cb26` on 21 November 2026.
+`99c5018` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -30,7 +30,6 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | # | Item | Size | Blocked on |
 |---|---|---|---|
 | H1 | Live monitor runs every 15 min with `BC_LIVE_URL` unset and always passes: deploy an instance and set the variables, or turn the schedule off until there is one | 0.1 | **owner: where an instance runs (D4)** |
-| H4 | Flaky test `POST /solve > rejects a tampered seal` (about 1 run in 256): it swaps the seal's last two base64url characters for `AA`, which can decode to the same bytes, so the seal opens and the test sees 200. Flip a byte of the decoded ciphertext instead. Not a server bug: GCM still refuses real tampering | 0.1 | |
 | H3 | `engine-strict=true` in `.npmrc`, so `npm ci` on Node < 24 stops with a clear message instead of tests crashing with SIGSEGV in `better-sqlite3` | 0.1 | |
 
 ## Later phases (design section 9)
@@ -65,3 +64,4 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | "Report this question" in the widget: `POST /api/v1/report` takes the seal and the question index, records only the item id in `bc_item_reports_total` (B5) | #27 |
 | `docker compose` demo stack (keys, API, demo backend on 127.0.0.1) and the Express demo backend: token accepted once, replay refused, CI job from a fresh checkout (B8, part 1) | #29, #30 |
 | Docs: `docs/PROTOCOL.md`, `docs/INTEGRATION.md` (Node, Python, plain PHP, raw HTTP, CSP), `docs/THREAT-MODEL.md` (B12) | #32 |
+| Flaky tamper tests: tamper by flipping a decoded byte, not by editing base64url text (H4) | #34 |
