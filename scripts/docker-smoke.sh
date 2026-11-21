@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke test for the server image: start it the way an operator would (read-only root filesystem,
 # no capabilities, mounted sites, keys and pack, a volume for /data), wait for the HEALTHCHECK,
-# read /healthz and /metrics, then stop it with SIGTERM and require a clean drain (exit code 0).
+# read /healthz and /metrics, check the widget it serves against the image's sri.json, then stop it with SIGTERM and require a clean drain (exit code 0).
 # The key file and a site are made with bc-admin inside the same image, so the CLI is tested where
 # operators run it.
 #
@@ -75,9 +75,24 @@ case "$body" in *'"ok":true'*) ;; *) fail "/healthz did not report ok" ;; esac
 curl -fsS "http://127.0.0.1:${metrics_port}/metrics" | grep -q '^# TYPE ' || fail "GET /metrics returned no metrics"
 echo "metrics: ok"
 
+# The widget: the bytes served must hash to the image's sri.json (the hashes a release publishes).
+docker cp "$name:/app/widget/dist/sri.json" "$work/sri.json" >/dev/null || fail "no widget/dist/sri.json in the image"
+for f in widget.js widget.worker.js; do
+  curl -fsS -D "$work/$f.headers" -o "$work/$f" "http://127.0.0.1:${api_port}/$f" || fail "GET /$f failed"
+  want="$(jq -er --arg f "$f" '.[$f].sri' "$work/sri.json")" || fail "sri.json has no hash for $f"
+  got="sha384-$(openssl dgst -sha384 -binary "$work/$f" | openssl base64 -A)"
+  [ "$got" = "$want" ] || fail "/$f hashes to $got, sri.json says $want"
+  grep -qi '^content-type: text/javascript' "$work/$f.headers" || fail "/$f is not text/javascript"
+  grep -qi '^cache-control: public, max-age=' "$work/$f.headers" || fail "/$f has no Cache-Control"
+  grep -qi '^access-control-allow-origin: \*' "$work/$f.headers" || fail "/$f is not readable cross-origin"
+  code="$(curl -sS -o /dev/null -w '%{http_code}' -H "if-none-match: \"$want\"" "http://127.0.0.1:${api_port}/$f")"
+  [ "$code" = "304" ] || fail "/$f with its ETag answered $code, expected 304"
+  echo "widget: /$f ok ($want)"
+done
+
 echo "stopping with SIGTERM"
 docker stop -t 30 "$name" >/dev/null
 code="$(docker inspect -f '{{.State.ExitCode}}' "$name")"
 docker logs "$name" 2>&1 | grep -q 'shutting down' || fail "no drain log line after SIGTERM"
 [ "$code" = "0" ] || fail "exit code $code after SIGTERM, expected 0"
-echo "smoke test passed: healthy, /healthz ok, /metrics ok, SIGTERM drained, exit 0"
+echo "smoke test passed: healthy, /healthz ok, /metrics ok, widget ok, SIGTERM drained, exit 0"

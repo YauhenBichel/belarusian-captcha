@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 #
-# The verify API server (docs/DESIGN.md sections 2.4 and 5.3).
+# The verify API server (docs/DESIGN.md sections 2.4 and 5.3), with the widget build it serves at
+# /widget.js and /widget.worker.js (section 5.1; BC_WIDGET_DIR).
 #
 # The build context is the repository root, not server/: the server is an npm workspace that needs
 # the root package-lock.json and the shared/ package, so this file lives next to them and
@@ -20,14 +21,17 @@
 ARG BUILD_IMAGE=node:24-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0
 ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs24-debian13:nonroot@sha256:6abfcb367ebc291572c774c1592a986be2ab26a2486f73093401327495a5962a
 
-# --- compile: TypeScript to JavaScript. The output is platform independent, so this stage runs on
-# the build machine's own architecture even in a multi-arch build (no emulation for tsc).
+# --- compile: TypeScript to JavaScript, and the widget bundle with esbuild. The output is platform
+# independent, so this stage runs on the build machine's own architecture even in a multi-arch
+# build (no emulation for tsc or esbuild), and both architectures carry the same widget bytes.
 FROM --platform=$BUILDPLATFORM ${BUILD_IMAGE} AS compile
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY shared/package.json shared/
 COPY server/package.json server/
-# --ignore-scripts: tsc needs no native addon, so better-sqlite3's node-gyp step is skipped here.
+COPY widget/package.json widget/
+# --ignore-scripts: tsc needs no native addon, so better-sqlite3's node-gyp step is skipped here
+# (esbuild's binary comes from its platform package and needs no install script).
 RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --no-audit --no-fund
 COPY shared/tsconfig.json shared/
 COPY shared/src shared/src
@@ -35,6 +39,10 @@ COPY server/tsconfig.json server/
 COPY server/src server/src
 # Builds shared/ first through the project reference; the tools project (tests) is not built.
 RUN npx tsc -b --builders 1 server
+# The widget bundles shared/src directly; build.mjs also writes sri.json and enforces the size budget.
+COPY widget/tsconfig.json widget/build.mjs widget/
+COPY widget/src widget/src
+RUN node widget/build.mjs
 
 # --- deps: production dependencies for the target architecture. better-sqlite3 ships prebuilt
 # N-API binaries for linux-x64 and linux-arm64 (glibc) inside its npm package, but npm still runs
@@ -70,7 +78,8 @@ ENV NODE_ENV=production \
     BC_STORE=sqlite:/data/bc.sqlite \
     BC_PORT=8080 \
     BC_METRICS_PORT=9464 \
-    BC_METRICS_HOST=0.0.0.0
+    BC_METRICS_HOST=0.0.0.0 \
+    BC_WIDGET_DIR=/app/widget/dist
 WORKDIR /app
 # Application files stay owned by root, so the process cannot change them.
 COPY --from=deps /app/node_modules node_modules
@@ -79,6 +88,8 @@ COPY --from=compile /src/shared/package.json shared/
 COPY --from=compile /src/shared/dist shared/dist
 COPY --from=compile /src/server/package.json server/
 COPY --from=compile /src/server/dist server/dist
+COPY --from=compile /src/widget/dist/widget.js /src/widget/dist/widget.worker.js \
+     /src/widget/dist/sri.json widget/dist/
 COPY LICENSE NOTICE ./
 COPY --from=deps --chown=65532:65532 /out/data /data
 VOLUME ["/data"]

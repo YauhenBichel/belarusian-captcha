@@ -9,6 +9,8 @@
 //   BC_METRICS_PORT/BC_METRICS_HOST                 (default 9464 on 127.0.0.1; port 0 = off)
 //   BC_LOG_LEVEL      pino level                    (default info)
 //   BC_TRUST_PROXY    "true", a hop count, or a comma-separated list of proxy addresses
+//   BC_WIDGET_DIR     the widget build (widget/dist) to serve at /widget.js and /widget.worker.js
+//                     (unset: not served; the image sets /app/widget/dist)
 //   BC_SHUTDOWN_TIMEOUT_MS  how long SIGTERM/SIGINT wait for in-flight requests (default 10000;
 //                     keep it below the pod's terminationGracePeriodSeconds, 30 s by default)
 
@@ -23,6 +25,7 @@ import { createMetrics } from './metrics.js';
 import { parsePack } from './pack.js';
 import { RateLimiter } from './rate.js';
 import { openStore, type SpentStore } from './store.js';
+import { loadWidgetAssets } from './widget-assets.js';
 
 export { isEntryPoint };
 
@@ -93,6 +96,7 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
   const ring = KeyRing.fromJson(keysJson);
   if (!env.BC_PACK) throw new Error('BC_PACK is required');
   const pack = parsePack(readFileSync(env.BC_PACK, 'utf8'));
+  const widget = env.BC_WIDGET_DIR ? loadWidgetAssets(env.BC_WIDGET_DIR) : undefined;
   const shutdownTimeoutMs = positiveInt(
     env.BC_SHUTDOWN_TIMEOUT_MS,
     DEFAULT_SHUTDOWN_TIMEOUT_MS,
@@ -111,6 +115,7 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
     metrics,
     logLevel: env.BC_LOG_LEVEL ?? 'info',
     trustProxy: parseTrustProxy(env.BC_TRUST_PROXY),
+    ...(widget && { widget }),
   });
 
   const timer = setInterval(() => {
