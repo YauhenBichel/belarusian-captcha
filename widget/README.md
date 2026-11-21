@@ -29,6 +29,11 @@ the widget or 5 kB for the worker.
 </form>
 ```
 
+The API serves `widget.js` and `widget.worker.js` itself (cached for ten minutes, with an ETag).
+Each release lists their `sha384` hashes in its notes and in `widget-sri.json`; the hash pins that
+build, so update it when the API's widget changes, or leave `integrity` out (docs/DESIGN.md
+section 6.1).
+
 The widget adds `<input type="hidden" name="bc-response">` to the form; the site's backend sends
 its value to `POST /api/v1/siteverify` with the secret.
 

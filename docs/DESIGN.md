@@ -542,7 +542,7 @@ Redis: the key's TTL). At 100 solves a minute that is a few thousand rows.
 | `POST /api/v1/solve` | widget | `{sealed, answer, pow}` (`answer` is an option id, two ids, or text) | `200 {token, expires}` or `422 {error, next}` with a new challenge |
 | `POST /api/v1/siteverify` | site backend | form or JSON `{secret, response, remoteip?, sitekey?, action?}` (`action`, if sent, must equal the token's) | `{success, challenge_ts, hostname, score, action, fallback, "error-codes": []}` (reCAPTCHA-shaped; `fallback` is true for a pass from `/fallback`) |
 | `GET /api/v1/fallback` | widget | `sitekey`, `lang`, `action` | the accessible alternative (section 6.3, D3 option B): a challenge of `type: "fallback"` with no question and a PoW two levels harder, under the same rate limit; solved through `/solve` with `answer: []` for a pass with `score` 0.3 and `fallback: true` |
-| `GET /widget.js`, `/widget.worker.js` | browser | | the widget, with `Cache-Control` and published SRI hashes |
+| `GET /widget.js`, `/widget.worker.js` | browser | | the widget build in the image (`BC_WIDGET_DIR`), checked against its `sri.json` at start; `Cache-Control: public, max-age=600`, an ETag (the SRI hash) with `304` on `If-None-Match`, readable from any origin without credentials (for `crossorigin="anonymous"`); each release publishes the hashes (`widget-sri.json`) |
 | `GET /healthz` | operator | | `{ok, pack_version, store}` |
 | `GET /metrics` | operator, bound to a separate port | | Prometheus text |
 
@@ -637,6 +637,12 @@ Prometheus metrics: `bc_challenges_total{site,type,level}`, `bc_solves_total{sit
   <button>Адправіць</button>
 </form>
 ```
+
+The `integrity` hash pins one widget build. The URL is not versioned, so when the API is upgraded
+to a release whose widget changed, a page that pins the old hash stops loading the widget until
+its hash is updated from the release's `widget-sri.json`. A site that cannot follow releases either
+leaves `integrity` out or serves its own pinned copy of `widget.js` (which also lets the worker run
+same-origin, section 6.2).
 
 The widget adds a hidden input `bc-response` to the enclosing form. Options:
 `data-callback`, `data-expired-callback`, `data-error-callback`, `data-action`, `data-types`,

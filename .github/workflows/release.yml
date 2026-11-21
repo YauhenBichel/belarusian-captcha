@@ -2,7 +2,8 @@ name: Release
 
 # Pushing a tag vX.Y.Z (on a commit of main that passed CI) builds the server image for amd64 and
 # arm64, smoke-tests it, pushes it to GHCR with provenance and SBOM attestations, and creates the
-# GitHub release. See CONTRIBUTING.md, "Cutting a release".
+# GitHub release with the SRI hashes of the widget the image serves (widget-sri.json and the notes).
+# See CONTRIBUTING.md, "Cutting a release".
 
 on:
   push:
@@ -28,6 +29,7 @@ jobs:
     outputs:
       digest: ${{ steps.push.outputs.digest }}
       version: ${{ steps.meta.outputs.version }}
+      widget-sri: ${{ steps.sri.outputs.json }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,6 +59,15 @@ jobs:
           cache-to: type=gha,scope=server-image,mode=max
       - name: Smoke test before pushing
         run: scripts/docker-smoke.sh belarusian-captcha-server:release-test
+      # The widget is built on the build platform, so the arm64 image carries the same bytes.
+      - name: Read the widget's SRI hashes from the image
+        id: sri
+        run: |
+          set -euo pipefail
+          id="$(docker create belarusian-captcha-server:release-test)"
+          docker cp "$id:/app/widget/dist/sri.json" sri.json
+          docker rm "$id" >/dev/null
+          echo "json=$(jq -c . sri.json)" >> "$GITHUB_OUTPUT"
       - name: Image tags and labels
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -101,10 +112,14 @@ jobs:
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.image.outputs.version }}
           DIGEST: ${{ needs.image.outputs.digest }}
+          WIDGET_SRI: ${{ needs.image.outputs.widget-sri }}
         run: |
           set -euo pipefail
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease --latest=false)
+          printf '%s' "$WIDGET_SRI" | jq . > widget-sri.json
+          sri_js="$(jq -er '."widget.js".sri' widget-sri.json)"
+          sri_worker="$(jq -er '."widget.worker.js".sri' widget-sri.json)"
           cat > notes.md <<NOTES
           Server image (linux/amd64, linux/arm64), with provenance and SBOM attestations:
 
@@ -112,6 +127,14 @@ jobs:
               docker pull ${IMAGE}@${DIGEST}
 
           Run it with the mounts and variables in README.md, "Run with Docker".
+
+          The widget this image serves at /widget.js and /widget.worker.js (all hashes in
+          widget-sri.json):
+
+              <script src="https://<your API>/widget.js" async defer
+                      integrity="${sri_js}" crossorigin="anonymous"></script>
+
+              widget.worker.js  ${sri_worker}
           NOTES
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+          gh release create "$TAG" widget-sri.json --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "$TAG" --notes "$(cat notes.md)" --generate-notes "${prerelease[@]}"

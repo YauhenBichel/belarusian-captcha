@@ -1,5 +1,6 @@
 // The verify API (docs/DESIGN.md section 5): /api/v1/challenge, /api/v1/fallback, /api/v1/solve,
-// /api/v1/siteverify and /healthz. Metrics are served separately (see main.ts).
+// /api/v1/siteverify, /healthz, and the widget (/widget.js, /widget.worker.js) when its build is
+// given. Metrics are served separately (see main.ts).
 //
 // /fallback is the accessible way through (section 6.3, D3 option B), for anyone the language or
 // the task excludes: a challenge with no question and a harder proof-of-work, solved through
@@ -43,6 +44,7 @@ import type { Metrics } from './metrics.js';
 import type { ContentPack } from './pack.js';
 import type { RateLimiter } from './rate.js';
 import type { SpentStore } from './store.js';
+import { etagMatches, WIDGET_CACHE_CONTROL, type WidgetAssets } from './widget-assets.js';
 
 export interface AppDeps {
   sites: Sites;
@@ -57,6 +59,8 @@ export interface AppDeps {
   trustProxy?: boolean | number | string | string[];
   /** Where log lines go (default stdout); tests capture them here. */
   logStream?: { write(line: string): void };
+  /** The widget files to serve at /widget.js and /widget.worker.js; without them, no routes. */
+  widget?: WidgetAssets;
 }
 
 interface LogContext {
@@ -442,6 +446,22 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     reply.code(ok ? 200 : 503);
     return { ok, pack_version: `${pack.version}+${pack.checksum}`, store: ok ? 'ok' : 'error' };
   });
+
+  // The widget (section 5.1). Readable from any origin and without credentials, so a page can load
+  // it with integrity="sha384-…" crossorigin="anonymous". HEAD is answered by Fastify's own HEAD
+  // route, with the same headers and no body.
+  for (const [name, file] of deps.widget ?? []) {
+    app.get(`/${name}`, async (req, reply) => {
+      reply
+        .header('cache-control', WIDGET_CACHE_CONTROL)
+        .header('etag', file.etag)
+        .header('access-control-allow-origin', '*')
+        .header('cross-origin-resource-policy', 'cross-origin')
+        .header('x-content-type-options', 'nosniff');
+      if (etagMatches(req.headers['if-none-match'], file.etag)) return reply.code(304).send();
+      return reply.type('text/javascript; charset=utf-8').send(file.body);
+    });
+  }
 
   app.setErrorHandler((err: { statusCode?: number; validation?: unknown }, req, reply) => {
     if (err.validation) return fail(req, reply, 400, 'bad-request');

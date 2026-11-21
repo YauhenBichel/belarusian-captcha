@@ -22,7 +22,8 @@ git push origin v0.1.0
 `release.yml` then builds the server image for amd64 and arm64, smoke-tests it, pushes
 `ghcr.io/yauhenbichel/belarusian-captcha-server:0.1.0` (and `:latest`, unless the tag has a
 pre-release suffix such as `-rc.1`) with provenance and SBOM attestations, and creates the GitHub
-release with generated notes. It uses only `GITHUB_TOKEN`; no stored secrets.
+release with generated notes, the widget's SRI hashes and `widget-sri.json` (read from the
+smoke-tested image). It uses only `GITHUB_TOKEN`; no stored secrets.
 
 If the run fails before the push step, nothing is published: fix it on `main`, delete the tag
 (`git push --delete origin v0.1.0 && git tag -d v0.1.0`) and tag again. If only the GitHub release

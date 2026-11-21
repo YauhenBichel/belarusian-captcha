@@ -17,6 +17,7 @@ import { createMetrics } from '../src/metrics.js';
 import { type ContentPack, parsePack } from '../src/pack.js';
 import { RateLimiter } from '../src/rate.js';
 import { type SpentStore, SqliteSpentStore } from '../src/store.js';
+import type { WidgetAssets } from '../src/widget-assets.js';
 
 export const PACK_TEXT = readFileSync(
   new URL('./fixtures/synthetic-pack.json', import.meta.url),
@@ -68,6 +69,7 @@ export async function harness(
     pack?: ContentPack;
     ring?: KeyRing;
     clock?: Clock;
+    widget?: WidgetAssets;
   } = {},
 ): Promise<Harness> {
   const clock = opts.clock ?? new Clock();
@@ -83,6 +85,7 @@ export async function harness(
     now: clock.now,
     logLevel: 'info',
     logStream: { write: (line) => void logs.push(line) },
+    ...(opts.widget && { widget: opts.widget }),
   };
   return { app: buildApp(deps), deps, clock, logs };
 }

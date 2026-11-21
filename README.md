@@ -73,11 +73,12 @@ docker stop -t 30 bc   # SIGTERM: drains in-flight requests (BC_SHUTDOWN_TIMEOUT
 
 | Port | What | Publish it? |
 | --- | --- | --- |
-| 8080 | the API and `GET /healthz` (the image's `HEALTHCHECK`) | yes, behind your TLS proxy |
+| 8080 | the API, the widget (`GET /widget.js`, `/widget.worker.js`) and `GET /healthz` (the image's `HEALTHCHECK`) | yes, behind your TLS proxy |
 | 9464 | Prometheus `GET /metrics` | no: keep it on the host or the internal network |
 
-The image sets `BC_SITES`, `BC_KEYS_FILE`, `BC_PACK` and `BC_STORE` to the paths above and binds
-metrics to `0.0.0.0` inside the container; every variable in
+The image sets `BC_SITES`, `BC_KEYS_FILE`, `BC_PACK` and `BC_STORE` to the paths above,
+`BC_WIDGET_DIR` to the widget build it carries, and binds metrics to `0.0.0.0` inside the
+container; every variable in
 [`server/src/main.ts`](server/src/main.ts) can be overridden with `-e`. Set `BC_TRUST_PROXY` to
 match your proxy (the example trusts one hop). Build it yourself with `docker build -t
 belarusian-captcha-server .` at the repository root; `scripts/docker-smoke.sh <image>` runs the

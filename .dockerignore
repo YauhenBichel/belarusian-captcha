@@ -10,6 +10,10 @@
 !server/package.json
 !server/tsconfig.json
 !server/src/**
+!widget/package.json
+!widget/tsconfig.json
+!widget/build.mjs
+!widget/src/**
 !LICENSE
 !NOTICE
 **/*.test.ts
