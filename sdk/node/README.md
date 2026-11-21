@@ -1,6 +1,30 @@
-# belarusian-captcha (Node SDK)
+# belarusian-captcha (Node SDK and widget module)
 
-Verify a belarusian-captcha pass token from your backend. Node 24+, no runtime dependencies.
+Verify a belarusian-captcha pass token from your backend (`belarusian-captcha/server`, Node 24+),
+and render the widget from your own bundle (`belarusian-captcha`). No runtime dependencies.
+
+## The widget, for bundlers
+
+```ts
+import { render } from 'belarusian-captcha';
+
+render('#captcha', {
+  sitekey: 'bc_pk_…',
+  api: 'https://captcha.example.by',      // your captcha API
+  lang: 'be',
+  callback: (token) => console.log('passed'),
+});
+```
+
+`render`, `renderAll`, `reset`, `getResponse` and `remove` are the same as the
+`belarusianCaptcha` global of `widget.js` (see [`widget/README.md`](../../widget/README.md)).
+Importing the module renders nothing by itself. The proof-of-work worker ships next to the module
+(`belarusian-captcha/widget.worker.js`) and is found through `new URL('./widget.worker.js',
+import.meta.url)`, which Vite, webpack 5, Rollup and esbuild with a file loader emit as an asset; a
+worker served from your own origin keeps the search off the main thread. If your bundler moves it,
+pass `workerUrl`; without a worker the search runs on the main thread in short slices.
+
+## Verify a token on your backend
 
 ```ts
 import { verify } from 'belarusian-captcha/server';

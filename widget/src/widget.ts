@@ -18,10 +18,11 @@ import {
   encodePowSolution,
   POW_ALGORITHM,
 } from '@belarusian-captcha/shared';
-import { ApiClient, ApiError, type WidgetErrorCode } from './api.js';
-import { type Lang, parseLang, type StringKey, t } from './i18n.js';
-import { type PowJob, type PowSolver, workerSolver } from './pow.js';
+import { ApiClient, ApiError } from './api.js';
+import { parseLang, type StringKey, t } from './i18n.js';
+import { workerSolver } from './pow.js';
 import { applyStyles } from './styles.js';
+import type { Lang, PowJob, PowSolver, WidgetErrorCode } from './types.js';
 
 export type Theme = 'light' | 'dark' | 'auto';
 

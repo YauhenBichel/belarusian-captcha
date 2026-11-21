@@ -43,6 +43,8 @@ jobs:
             echo '| --- | ---: | ---: | ---: |'
             node -e 'const r=require("./widget/dist/sri.json");for(const[f,v]of Object.entries(r))console.log(`| ${f} | ${v.bytes} | ${v.gzip} | ${v.budget} |`)'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: npm package (packed, then type-checked and imported by a consumer)
+        run: npm run check:package
 
   python:
     name: Python SDK (Python ${{ matrix.python }})

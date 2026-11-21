@@ -7,7 +7,9 @@ import beLatn from './i18n/be-Latn.json' with { type: 'json' };
 import en from './i18n/en.json' with { type: 'json' };
 import ru from './i18n/ru.json' with { type: 'json' };
 
-export type Lang = 'be' | 'be-Latn' | 'ru' | 'en';
+import type { Lang } from './types.js';
+
+export type { Lang };
 export type StringKey = keyof typeof en;
 
 export const LANGS: readonly Lang[] = ['be', 'be-Latn', 'ru', 'en'];

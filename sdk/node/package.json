@@ -3,13 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "//": "private until the 0.1.0 release (design section 9, phase 1); the npm name is free (D14).",
-  "description": "Node SDK for belarusian-captcha: verify a pass token from your backend. No runtime dependencies.",
+  "description": "belarusian-captcha for Node and bundlers: verify a pass token from your backend (./server), and the browser widget as an ES module (.). No runtime dependencies.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
   "exports": {
+    ".": {
+      "types": "./dist/widget/index.d.ts",
+      "default": "./dist/widget/widget.mjs"
+    },
+    "./widget.worker.js": "./dist/widget/widget.worker.js",
     "./server": {
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
@@ -21,6 +26,7 @@
     "!dist/.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b"
-  }
+    "build": "tsc -b && node build-widget.mjs"
+  },
+  "sideEffects": false
 }
