@@ -14,7 +14,7 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B1 | **Python SDK** `sdk/python`: `verify(token, secret=, url=, min_score=, fail_open=, timeout=3.0)`, standard library only | 1 | | same result shape and failure rules as the Node SDK (`sdk/node/README.md`); shared fixtures in `tests/fixtures/` |
+| B1 | **Python SDK** `sdk/python`: `verify(token, secret=, url=, min_score=, fail_open=, timeout=3.0)`, standard library only | 1 | | same result shape and failure rules as the Node SDK (`sdk/node/README.md`), including the `fallback` flag from B3; shared fixtures in `tests/fixtures/` |
 | B2 | **`bc-admin` CLI**: generate and rotate sealing keys (two-key overlap), add a site (prints site key and secret, stores only the secret's hash) | 1 | | design 4.3 and section 11 "Key leaked"; nothing exists yet |
 | B3 | **Accessible fallback B and C (D3)**: `GET /api/v1/fallback`, PoW-only pass with a low score, `fallback: true` in siteverify; proverb as accessible text | 1 | | the widget already expects it (`widget/src/widget.ts` header comment) |
 | B4 | **Serve the widget from the API**: `GET /widget.js`, `/widget.worker.js` with `Cache-Control`, SRI hashes published with the release | 0.5 | | design 5.1; the demo loads the bundle itself today |

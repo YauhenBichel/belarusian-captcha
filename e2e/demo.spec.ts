@@ -111,6 +111,26 @@ test('a wrong answer gets no token, a new question, and siteverify refuses', asy
   expect(forged.success).toBe(false);
 });
 
+test('"I cannot do this challenge" by keyboard: a low-score pass marked as a fallback', async ({
+  page,
+}) => {
+  await page.goto(demoUrl());
+  const q = await question(page);
+  const cannot = q.widget.getByRole('button', { name: 'I cannot do this challenge' });
+  await expect(cannot).toBeVisible();
+  // Tab past the radio group (one tab stop) to the button, then Enter.
+  await q.widget.getByRole('radio').first().focus();
+  await page.keyboard.press('Tab');
+  await expect(cannot).toBeFocused();
+  await page.keyboard.press('Enter');
+
+  await expect(q.widget.getByRole('radio')).toHaveCount(0);
+  await expect(q.widget.getByRole('status')).toHaveText('Done');
+  const token = await page.locator('input[name="bc-response"]').inputValue();
+  const v = await siteverify(token);
+  expect(v).toMatchObject({ success: true, score: 0.3, fallback: true, 'error-codes': [] });
+});
+
 test('the page says clearly when the API cannot be reached', async ({ page }) => {
   await page.goto(demoUrl('http://127.0.0.1:9'));
   const banner = page.locator('#api-status');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiClient, ApiError, isChallenge } from './api.js';
-import { FakeApi, makeChallenge } from './test-helpers.js';
+import { FakeApi, makeChallenge, makeFallback } from './test-helpers.js';
 
 describe('ApiClient.challenge', () => {
   it('sends the query, omits empty values, and returns the challenge', async () => {
@@ -36,6 +36,33 @@ describe('ApiClient.challenge', () => {
     api.challengeReplies.push({ status: 200, body: { sealed: 1 } }, { status: 502, body: 'x' });
     const c = new ApiClient('https://api.test', api.fetch);
     await expect(c.challenge({ sitekey: 'x' })).rejects.toMatchObject({ code: 'bad-response' });
+    await expect(c.challenge({ sitekey: 'x' })).rejects.toMatchObject({ code: 'bad-response' });
+  });
+});
+
+describe('ApiClient.fallback', () => {
+  it('asks GET /fallback and returns a challenge with no question', async () => {
+    const api = new FakeApi();
+    const ch = await new ApiClient('https://api.test', api.fetch).fallback({
+      sitekey: 'sk',
+      action: 'signup',
+    });
+    expect(ch.type).toBe('fallback');
+    expect(ch.display.questions).toEqual([]);
+    const url = api.calls[0]?.url;
+    expect(url?.pathname).toBe('/api/v1/fallback');
+    expect(Object.fromEntries(url?.searchParams ?? [])).toEqual({
+      sitekey: 'sk',
+      action: 'signup',
+    });
+  });
+
+  it('refuses a proverb from /fallback and a fallback from /challenge', async () => {
+    const api = new FakeApi();
+    api.fallbackReplies.push({ status: 200, body: await makeChallenge() });
+    api.challengeReplies.push({ status: 200, body: await makeFallback() });
+    const c = new ApiClient('https://api.test', api.fetch);
+    await expect(c.fallback({ sitekey: 'x' })).rejects.toMatchObject({ code: 'bad-response' });
     await expect(c.challenge({ sitekey: 'x' })).rejects.toMatchObject({ code: 'bad-response' });
   });
 });
@@ -81,10 +108,14 @@ describe('ApiClient.solve', () => {
 });
 
 describe('isChallenge', () => {
-  it('requires questions with string options', async () => {
+  it('requires questions with string options for a proverb, and none for a fallback', async () => {
     const ch = await makeChallenge();
     expect(isChallenge(ch)).toBe(true);
     expect(isChallenge({ ...ch, display: { questions: [] } })).toBe(false);
+    const fb = await makeFallback();
+    expect(isChallenge(fb)).toBe(true);
+    expect(isChallenge({ ...fb, display: ch.display })).toBe(false);
+    expect(isChallenge({ ...ch, type: 'picture' })).toBe(false);
     expect(
       isChallenge({ ...ch, display: { questions: [{ prompt: 'p', options: [{ id: 1 }] }] } }),
     ).toBe(false);

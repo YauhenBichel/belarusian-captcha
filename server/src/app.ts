@@ -1,10 +1,17 @@
-// The verify API (docs/DESIGN.md section 5): /api/v1/challenge, /api/v1/solve,
+// The verify API (docs/DESIGN.md section 5): /api/v1/challenge, /api/v1/fallback, /api/v1/solve,
 // /api/v1/siteverify and /healthz. Metrics are served separately (see main.ts).
+//
+// /fallback is the accessible way through (section 6.3, D3 option B), for anyone the language or
+// the task excludes: a challenge with no question and a harder proof-of-work, solved through
+// /solve with an empty answer. Its pass token has score FALLBACK_SCORE and `fallback: true`, which
+// siteverify passes on, so the site decides what a fallback pass may do.
 
 import {
   API_PREFIX,
   type ChallengeResponse,
+  type ChallengeType,
   type ErrorCode,
+  FALLBACK_SCORE,
   issuePassToken,
   type KeyRing,
   randomId,
@@ -25,7 +32,12 @@ import Fastify, {
   type FastifyRequest,
   LogController,
 } from 'fastify';
-import { answerHash, buildProverbChallenge, isSealedChallenge } from './challenge.js';
+import {
+  answerHash,
+  buildFallbackChallenge,
+  buildProverbChallenge,
+  isSealedChallenge,
+} from './challenge.js';
 import { entryHost, matchOrigin, type SiteConfig, type Sites } from './config.js';
 import type { Metrics } from './metrics.js';
 import type { ContentPack } from './pack.js';
@@ -66,7 +78,11 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   const { sites, ring, store, pack, limiter, metrics } = deps;
   /** Every `host[:port]` entry of every site: who may preflight, and who may read an error. */
   const allOrigins = new Set([...sites.values()].flatMap((s) => s.hostnames));
-  const widgetRoutes = new Set([`${API_PREFIX}/challenge`, `${API_PREFIX}/solve`]);
+  const widgetRoutes = new Set([
+    `${API_PREFIX}/challenge`,
+    `${API_PREFIX}/fallback`,
+    `${API_PREFIX}/solve`,
+  ]);
 
   const app = Fastify({
     bodyLimit: 16 * 1024,
@@ -148,6 +164,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     req: FastifyRequest,
     site: SiteConfig,
     action: string,
+    type: ChallengeType,
   ): Promise<{ limited: true } | { limited: false; challenge: ChallengeResponse }> {
     const bucket = await limiter.bucketFor(req.ip);
     const d = limiter.hit(site, bucket);
@@ -156,7 +173,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       return { limited: true };
     }
     const t0 = performance.now();
-    const { response, itemIds } = await buildProverbChallenge({
+    const input = {
       ring,
       pack,
       site,
@@ -165,10 +182,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       action,
       recent: limiter.recentItems(site, bucket),
       nowMs: now(),
-    });
-    metrics.renderSeconds.observe({ type: 'proverb' }, (performance.now() - t0) / 1000);
-    limiter.shown(site, bucket, itemIds);
-    metrics.challenges.inc({ site: site.sitekey, type: 'proverb', level: String(d.level) });
+    };
+    let response: ChallengeResponse;
+    if (type === 'fallback') {
+      response = await buildFallbackChallenge(input);
+    } else {
+      const built = await buildProverbChallenge(input);
+      response = built.response;
+      limiter.shown(site, bucket, built.itemIds);
+    }
+    metrics.renderSeconds.observe({ type }, (performance.now() - t0) / 1000);
+    metrics.challenges.inc({ site: site.sitekey, type, level: String(d.level) });
     metrics.powLevel.observe({ site: site.sitekey }, d.level);
     req.bc.level = d.level;
     return { limited: false, challenge: response };
@@ -177,6 +201,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   // Preflight for the widget endpoints. The solve body (and so its site) is not known yet, so
   // any configured host name may preflight; the real request is checked against its own site.
   app.options(`${API_PREFIX}/challenge`, preflight);
+  app.options(`${API_PREFIX}/fallback`, preflight);
   app.options(`${API_PREFIX}/solve`, preflight);
   async function preflight(req: FastifyRequest, reply: FastifyReply) {
     if (!allowOrigin(req, reply, allOrigins)) return reply.code(403).send();
@@ -186,29 +211,28 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return reply.code(204).send();
   }
 
-  app.get<{ Querystring: { sitekey: string; lang?: string; script?: string; action?: string } }>(
-    `${API_PREFIX}/challenge`,
-    {
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['sitekey'],
-          properties: {
-            sitekey: { type: 'string', maxLength: 64 },
-            lang: { type: 'string', enum: ['be', 'be-Latn', 'ru', 'en'] },
-            script: { type: 'string', enum: ['cyrl'] },
-            types: { type: 'string', maxLength: 64 },
-            action: { type: 'string', pattern: ACTION },
-          },
-        },
-      },
+  const challengeQuery = {
+    type: 'object',
+    required: ['sitekey'],
+    properties: {
+      sitekey: { type: 'string', maxLength: 64 },
+      lang: { type: 'string', enum: ['be', 'be-Latn', 'ru', 'en'] },
+      script: { type: 'string', enum: ['cyrl'] },
+      types: { type: 'string', maxLength: 64 },
+      action: { type: 'string', pattern: ACTION },
     },
-    async (req, reply) => {
+  } as const;
+  type ChallengeQuery = { sitekey: string; lang?: string; script?: string; action?: string };
+
+  /** GET /challenge and GET /fallback: same query, same checks, a different challenge. */
+  const challengeHandler =
+    (type: ChallengeType) =>
+    async (req: FastifyRequest<{ Querystring: ChallengeQuery }>, reply: FastifyReply) => {
       const site = sites.get(req.query.sitekey);
       if (!site) return fail(req, reply, 403, 'invalid-sitekey');
       req.bc.site = site.sitekey;
       if (!allowOrigin(req, reply, site.hostnames)) return fail(req, reply, 403, 'invalid-sitekey');
-      const r = await newChallenge(req, site, req.query.action ?? '');
+      const r = await newChallenge(req, site, req.query.action ?? '', type);
       if (r.limited) {
         reply.header('retry-after', '60');
         return fail(req, reply, 429, 'rate-limited');
@@ -216,7 +240,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       req.bc.result = 'ok';
       reply.header('cache-control', 'no-store');
       return r.challenge;
-    },
+    };
+
+  app.get<{ Querystring: ChallengeQuery }>(
+    `${API_PREFIX}/challenge`,
+    { schema: { querystring: challengeQuery } },
+    challengeHandler('proverb'),
+  );
+  app.get<{ Querystring: ChallengeQuery }>(
+    `${API_PREFIX}/fallback`,
+    { schema: { querystring: challengeQuery } },
+    challengeHandler('fallback'),
   );
 
   app.post<{ Body: SolveRequest }>(
@@ -229,9 +263,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
           additionalProperties: false,
           properties: {
             sealed: { type: 'string', maxLength: 4096 },
+            // Empty only for a fallback challenge; the length must match the sealed questions.
             answer: {
               type: 'array',
-              minItems: 1,
+              minItems: 0,
               maxItems: 2,
               items: { type: 'string', maxLength: 32 },
             },
@@ -264,7 +299,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         if (countFailure) limiter.fail(site, c.b);
         metrics.solves.inc({ site: site.sitekey, type: c.t, result: error });
         req.bc.result = error;
-        const next = await newChallenge(req, site, c.act);
+        // The next challenge is of the same kind: a fallback stays a fallback.
+        const next = await newChallenge(req, site, c.act, c.t);
         if (next.limited) {
           reply.header('retry-after', '60');
           return reply.code(429).send({ error: 'rate-limited' });
@@ -316,7 +352,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         sitekey: site.sitekey,
         hostname,
         action: c.act,
-        score: 1,
+        score: c.t === 'fallback' ? FALLBACK_SCORE : 1,
+        ...(c.t === 'fallback' ? { fallback: true as const } : {}),
         iat: Math.floor(iat / 1000),
         exp: Math.floor(exp / 1000),
       });
@@ -394,6 +431,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         hostname: payload.hostname,
         score: payload.score,
         action: payload.action,
+        fallback: payload.fallback === true,
         'error-codes': [],
       };
     },

@@ -7,9 +7,11 @@
 // prompt (arrow keys, Home and End move, Space or Enter picks); status changes go to one
 // aria-live="polite" region; focus never moves on load, only to keep it inside the widget when
 // the element that had it is replaced. The non-visual alternative (section 6.3, D3): the proverb
-// is plain text, so a screen reader reads it as is (option C). TODO(D3 option B): the "I cannot
-// do this challenge" PoW-only pass needs GET /api/v1/fallback and `fallback: true` in siteverify,
-// which the server does not have yet; the link is added with that endpoint.
+// is plain text, so a screen reader reads it as is (option C), and the "I cannot do this
+// challenge" button under it (option B) is the way through for anyone the language or the task
+// excludes: GET /api/v1/fallback brings a challenge with no question and a harder proof-of-work,
+// which the widget solves and sends with an empty answer. The site's backend sees the pass as
+// `fallback: true` with a low score, and decides what it may do.
 
 import {
   type ChallengeResponse,
@@ -93,6 +95,7 @@ export class CaptchaWidget {
   readonly #statusText: HTMLSpanElement;
   readonly #spinner: HTMLSpanElement;
   readonly #retry: HTMLButtonElement;
+  readonly #cannot: HTMLButtonElement;
   readonly #input: HTMLInputElement;
   #gen = 0;
   #challenge: ChallengeResponse | undefined;
@@ -137,12 +140,20 @@ export class CaptchaWidget {
     const retry = t(this.lang, 'retry');
     this.#retry = el('button', { type: 'button', lang: retry.lang, hidden: '' }, retry.text);
     this.#retry.addEventListener('click', () => this.reset());
+    const cannot = t(this.lang, 'cannot');
+    this.#cannot = el(
+      'button',
+      { type: 'button', class: 'alt', lang: cannot.lang, hidden: '' },
+      cannot.text,
+    );
+    this.#cannot.addEventListener('click', () => void this.#fallback());
     this.#box.append(
       el('p', { class: 'title', id: 'bc-title', lang: label.lang }, label.text),
       el('p', { class: 'instr', id: 'bc-instr', lang: instr.lang }, instr.text),
       this.#questions,
       this.#status,
       this.#retry,
+      this.#cannot,
     );
     this.#root.append(this.#box);
     // The status starts as "loading": text present when the live region is created is not
@@ -182,6 +193,7 @@ export class CaptchaWidget {
     const hadFocus = this.#hasFocus();
     this.#questions.replaceChildren();
     this.#retry.hidden = true;
+    this.#cannot.hidden = true;
     if (hadFocus) this.#box.focus();
     this.#say('loading', 'busy');
     let ch: ChallengeResponse;
@@ -230,6 +242,7 @@ export class CaptchaWidget {
       return block;
     });
     this.#questions.replaceChildren(...blocks);
+    this.#cannot.hidden = ch.type !== 'proverb';
     if (announce) this.#say(announce, 'info');
     else this.#say();
     this.#job = this.#solver(ch.pow);
@@ -293,14 +306,53 @@ export class CaptchaWidget {
     if (this.#picks.every((p) => p !== undefined)) void this.#submit();
   }
 
-  async #submit(): Promise<void> {
+  /**
+   * The accessible way through: drop the question, fetch a fallback challenge, solve its
+   * proof-of-work and send it with an empty answer. Focus stays in the widget.
+   */
+  async #fallback(): Promise<void> {
+    const gen = ++this.#gen;
+    const hadFocus = this.#hasFocus();
+    this.#stopWork();
+    this.#busy = true;
+    this.#questions.replaceChildren();
+    this.#cannot.hidden = true;
+    if (hadFocus) this.#box.focus();
+    this.#say('checkingLonger', 'busy');
+    let ch: ChallengeResponse;
+    try {
+      ch = await this.#api.fallback({
+        sitekey: this.#opts.sitekey,
+        lang: this.lang,
+        action: this.#opts.action,
+      });
+    } catch (e) {
+      if (gen === this.#gen) this.#fail(e instanceof ApiError ? e.code : 'bad-response');
+      return;
+    }
+    if (gen !== this.#gen) return;
+    this.#challenge = ch;
+    this.#picks = [];
+    this.#job = this.#solver(ch.pow);
+    this.#emit('bc-challenge', {
+      type: ch.type,
+      questions: 0,
+      maxnumber: ch.pow.maxnumber,
+      expires: ch.expires,
+      sealed: ch.sealed,
+    });
+    await this.#submit('checkingLonger');
+  }
+
+  async #submit(status: StringKey = 'checking'): Promise<void> {
     const gen = this.#gen;
     const ch = this.#challenge;
     const job = this.#job;
     if (!ch || !job) return;
     this.#busy = true;
+    this.#cannot.hidden = true;
     for (const o of this.#options(this.#questions)) o.setAttribute('aria-disabled', 'true');
-    this.#say('checking', 'busy');
+    this.#say(status, 'busy');
     const found = await job.result;
     if (gen !== this.#gen) return;
     if (!found) return this.#fail('pow-failed');
@@ -322,7 +374,9 @@ export class CaptchaWidget {
     if (gen !== this.#gen) return;
     if (r.ok) return this.#solved(r.token, r.expires, found.took);
     this.#emit('bc-rejected', { error: r.error });
-    if (!r.next) return this.#fail(r.error);
+    // A refused fallback (an expired challenge, a failed proof-of-work) ends in "Try again",
+    // which starts over with a question and the button again.
+    if (!r.next || ch.type === 'fallback') return this.#fail(r.error);
     const key: StringKey =
       r.error === 'wrong-answer'
         ? 'wrong'
@@ -337,6 +391,7 @@ export class CaptchaWidget {
     this.#busy = false;
     this.#job = undefined;
     this.#questions.replaceChildren();
+    this.#cannot.hidden = true;
     if (hadFocus) this.#box.focus();
     this.#setToken(token);
     this.#say('done', 'ok');
@@ -357,6 +412,7 @@ export class CaptchaWidget {
     this.#stopWork();
     this.#busy = false;
     this.#questions.replaceChildren();
+    this.#cannot.hidden = true;
     const key: StringKey =
       code === 'network-error' ? 'unreachable' : code === 'rate-limited' ? 'rateLimited' : 'failed';
     this.#say(key, 'error');

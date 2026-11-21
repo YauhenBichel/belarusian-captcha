@@ -256,6 +256,7 @@ describe('POST /siteverify', () => {
       hostname: 'site-a.test',
       score: 1,
       action: '',
+      fallback: false,
       'error-codes': [],
     });
     expect((await siteverify(h, token)).json()).toEqual({

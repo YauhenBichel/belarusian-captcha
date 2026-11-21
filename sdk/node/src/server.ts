@@ -64,6 +64,12 @@ export interface VerifyResult {
   action?: string;
   /** ISO 8601 time the challenge was solved. */
   challenge_ts?: string;
+  /**
+   * True when the visitor took the accessible way through ("I cannot do this challenge"): no
+   * question was answered, only a harder proof-of-work, and the score is low (0.3). Present
+   * whenever the API accepted the token; false for an API that predates the fallback.
+   */
+  fallback?: boolean;
   error_codes: VerifyErrorCode[];
   /** True when the API could not give an answer (see `failOpen`). */
   unavailable: boolean;
@@ -128,6 +134,7 @@ export async function verify(
   if (typeof data.hostname === 'string') result.hostname = data.hostname;
   if (typeof data.action === 'string') result.action = data.action;
   if (typeof data.challenge_ts === 'string') result.challenge_ts = data.challenge_ts;
+  result.fallback = data.fallback === true;
 
   if (options.minScore !== undefined && (result.score ?? 0) < options.minScore) {
     result.success = false;
@@ -168,6 +175,7 @@ interface SiteverifyAnswer {
   hostname?: unknown;
   action?: unknown;
   challenge_ts?: unknown;
+  fallback?: unknown;
   'error-codes': unknown[];
 }
 

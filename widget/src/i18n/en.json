@@ -3,11 +3,13 @@
   "instruction": "Choose the right ending of the saying.",
   "loading": "Loading the question…",
   "checking": "Checking…",
+  "checkingLonger": "Checking without a question. This takes a little longer…",
   "done": "Done",
   "wrong": "Not quite. Here is a new question.",
   "expired": "The check expired. Here is a new question.",
   "unreachable": "The CAPTCHA service cannot be reached. Try again later.",
   "rateLimited": "Too many attempts. Wait a minute and try again.",
   "failed": "The check could not be completed.",
-  "retry": "Try again"
+  "retry": "Try again",
+  "cannot": "I cannot do this challenge"
 }
