@@ -1,0 +1,220 @@
+{
+  "_note": "How a server SDK turns a siteverify answer into a verify result. Read by sdk/node and sdk/python tests, so both SDKs follow the same rules. `status` and `body` (JSON) or `raw` (a non-JSON body) are what the API answers; `options` are verify options (snake_case here; the Node test maps them); `expected` is the whole result, with absent fields left out.",
+  "cases": [
+    {
+      "name": "a valid token",
+      "status": 200,
+      "body": {
+        "success": true,
+        "challenge_ts": "2026-11-20T12:00:00.000Z",
+        "hostname": "site-a.test",
+        "score": 0.9,
+        "action": "login",
+        "fallback": false,
+        "error-codes": []
+      },
+      "options": {},
+      "expected": {
+        "success": true,
+        "score": 0.9,
+        "hostname": "site-a.test",
+        "action": "login",
+        "challenge_ts": "2026-11-20T12:00:00.000Z",
+        "fallback": false,
+        "error_codes": [],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "an API from before the fallback (no fallback field) reads as not a fallback",
+      "status": 200,
+      "body": { "success": true, "hostname": "site-a.test", "score": 1, "error-codes": [] },
+      "options": {},
+      "expected": {
+        "success": true,
+        "score": 1,
+        "hostname": "site-a.test",
+        "fallback": false,
+        "error_codes": [],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "a fallback pass",
+      "status": 200,
+      "body": {
+        "success": true,
+        "hostname": "site-a.test",
+        "score": 0.3,
+        "fallback": true,
+        "error-codes": []
+      },
+      "options": {},
+      "expected": {
+        "success": true,
+        "score": 0.3,
+        "hostname": "site-a.test",
+        "fallback": true,
+        "error_codes": [],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "a fallback pass under a minimum score above 0.3",
+      "status": 200,
+      "body": {
+        "success": true,
+        "hostname": "site-a.test",
+        "score": 0.3,
+        "fallback": true,
+        "error-codes": []
+      },
+      "options": { "min_score": 0.5 },
+      "expected": {
+        "success": false,
+        "score": 0.3,
+        "hostname": "site-a.test",
+        "fallback": true,
+        "error_codes": ["score-below-threshold"],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "only a literal true is a fallback",
+      "status": 200,
+      "body": { "success": true, "score": 0.3, "fallback": "true", "error-codes": [] },
+      "options": {},
+      "expected": {
+        "success": true,
+        "score": 0.3,
+        "fallback": false,
+        "error_codes": [],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "a score equal to the minimum passes",
+      "status": 200,
+      "body": { "success": true, "score": 0.3, "error-codes": [] },
+      "options": { "min_score": 0.3 },
+      "expected": {
+        "success": true,
+        "score": 0.3,
+        "fallback": false,
+        "error_codes": [],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "a missing score counts as 0 under a minimum",
+      "status": 200,
+      "body": { "success": true, "error-codes": [] },
+      "options": { "min_score": 0.1 },
+      "expected": {
+        "success": false,
+        "fallback": false,
+        "error_codes": ["score-below-threshold"],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "fields of the wrong type are left out",
+      "status": 200,
+      "body": { "success": true, "score": "0.9", "hostname": 7, "action": null, "error-codes": [] },
+      "options": {},
+      "expected": { "success": true, "fallback": false, "error_codes": [], "unavailable": false }
+    },
+    {
+      "name": "a refusal passes the API codes through and does not fail open",
+      "status": 200,
+      "body": { "success": false, "error-codes": ["timeout-or-duplicate"] },
+      "options": { "fail_open": true },
+      "expected": {
+        "success": false,
+        "error_codes": ["timeout-or-duplicate"],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "429 rate-limited is a refusal, not unavailable",
+      "status": 429,
+      "body": { "success": false, "error-codes": ["rate-limited"] },
+      "options": { "fail_open": true },
+      "expected": { "success": false, "error_codes": ["rate-limited"], "unavailable": false }
+    },
+    {
+      "name": "403 invalid-secret is a refusal",
+      "status": 403,
+      "body": { "success": false, "error-codes": ["invalid-secret"] },
+      "options": {},
+      "expected": { "success": false, "error_codes": ["invalid-secret"], "unavailable": false }
+    },
+    {
+      "name": "a refusal without codes reads as invalid-input-response",
+      "status": 200,
+      "body": { "success": false, "error-codes": [] },
+      "options": {},
+      "expected": {
+        "success": false,
+        "error_codes": ["invalid-input-response"],
+        "unavailable": false
+      }
+    },
+    {
+      "name": "codes that are not strings are dropped",
+      "status": 200,
+      "body": { "success": false, "error-codes": [3, "invalid-secret", null] },
+      "options": {},
+      "expected": { "success": false, "error_codes": ["invalid-secret"], "unavailable": false }
+    },
+    {
+      "name": "503 store-unavailable fails closed",
+      "status": 503,
+      "body": { "success": false, "error-codes": ["store-unavailable"] },
+      "options": {},
+      "expected": { "success": false, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "503 store-unavailable fails open with fail_open",
+      "status": 503,
+      "body": { "success": false, "error-codes": ["store-unavailable"] },
+      "options": { "fail_open": true },
+      "expected": { "success": true, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "502 with an HTML page fails closed",
+      "status": 502,
+      "raw": "<html>bad gateway</html>",
+      "options": {},
+      "expected": { "success": false, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "200 that is not a siteverify answer fails closed",
+      "status": 200,
+      "body": { "hello": "world" },
+      "options": {},
+      "expected": { "success": false, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "200 that is not a siteverify answer fails open with fail_open",
+      "status": 200,
+      "body": { "hello": "world" },
+      "options": { "fail_open": true },
+      "expected": { "success": true, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "200 with a body that is not JSON fails closed",
+      "status": 200,
+      "raw": "ok",
+      "options": {},
+      "expected": { "success": false, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    },
+    {
+      "name": "a JSON array is not a siteverify answer",
+      "status": 200,
+      "body": [true],
+      "options": {},
+      "expected": { "success": false, "error_codes": ["captcha-unavailable"], "unavailable": true }
+    }
+  ]
+}
