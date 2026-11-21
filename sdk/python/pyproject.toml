@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "belarusian-captcha"
+version = "0.0.0"
+description = "Verify a belarusian-captcha pass token from your backend. Standard library only."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Source = "https://github.com/YauhenBichel/belarusian-captcha"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/belarusian_captcha"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use assert-free unittest, plain http on 127.0.0.1 and a fake secret.
+"tests/**" = ["S"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["src", "tests"]

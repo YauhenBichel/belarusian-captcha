@@ -1,0 +1,5 @@
+# Tools for CI and local checks (not runtime dependencies; the SDK has none).
+# Regenerate requirements-dev.txt with:
+#   uv pip compile --universal --python-version 3.11 --generate-hashes requirements-dev.in -o requirements-dev.txt
+ruff==0.17.6
+mypy==2.4.1

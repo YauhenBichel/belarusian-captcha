@@ -44,6 +44,37 @@ jobs:
             node -e 'const r=require("./widget/dist/sri.json");for(const[f,v]of Object.entries(r))console.log(`| ${f} | ${v.bytes} | ${v.gzip} | ${v.budget} |`)'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  python:
+    name: Python SDK (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    defaults:
+      run:
+        working-directory: sdk/python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the tools (hash-pinned) and the SDK (no dependencies)
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+      - name: Lint and format
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Type-check (mypy --strict)
+        run: mypy
+      - name: Unit tests (the cases shared with the Node SDK included)
+        run: python -m unittest discover -s tests -v
+
   e2e:
     name: "e2e: demo page and verify API (Playwright, Chromium)"
     runs-on: ubuntu-latest

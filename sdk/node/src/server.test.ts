@@ -1,6 +1,20 @@
+import { readFileSync } from 'node:fs';
 import type { ErrorCode } from '@belarusian-captcha/shared';
 import { describe, expect, it } from 'vitest';
 import { type ApiErrorCode, DEFAULT_TIMEOUT_MS, verify } from './server.js';
+
+// The cases both server SDKs share (sdk/python reads the same file).
+interface SharedCase {
+  name: string;
+  status: number;
+  body?: unknown;
+  raw?: string;
+  options: { min_score?: number; fail_open?: boolean };
+  expected: unknown;
+}
+const shared = JSON.parse(
+  readFileSync(new URL('../../../tests/fixtures/siteverify.json', import.meta.url), 'utf8'),
+) as { cases: SharedCase[] };
 
 // The SDK cannot depend on the private shared package, so it keeps its own copy of the codes.
 // These two lines fail the type-check if the copies drift apart.
@@ -41,6 +55,25 @@ const OK = {
   action: 'login',
   'error-codes': [],
 };
+
+describe('verify: the cases shared with the Python SDK (tests/fixtures/siteverify.json)', () => {
+  it('has cases', () => expect(shared.cases.length).toBeGreaterThan(10));
+  for (const c of shared.cases) {
+    it(c.name, async () => {
+      const f = fakeFetch(() =>
+        c.raw !== undefined ? new Response(c.raw, { status: c.status }) : json(c.status, c.body),
+      );
+      const r = await verify('tok', {
+        secret: SECRET,
+        url: URL_BASE,
+        fetch: f.fetch,
+        ...(c.options.min_score !== undefined && { minScore: c.options.min_score }),
+        ...(c.options.fail_open !== undefined && { failOpen: c.options.fail_open }),
+      });
+      expect(r).toEqual(c.expected);
+    });
+  }
+});
 
 describe('verify', () => {
   it('posts the token, secret and optional fields as JSON to /api/v1/siteverify', async () => {
