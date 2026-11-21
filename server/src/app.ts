@@ -15,6 +15,7 @@ import {
   FALLBACK_SCORE,
   issuePassToken,
   type KeyRing,
+  type ReportRequest,
   randomId,
   SealError,
   type SiteverifyResponse,
@@ -67,6 +68,8 @@ interface LogContext {
   site?: string;
   result?: string;
   level?: number;
+  /** POST /report only: the content item reported (an id from the pack, never visitor data). */
+  item?: string;
 }
 
 declare module 'fastify' {
@@ -86,6 +89,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     `${API_PREFIX}/challenge`,
     `${API_PREFIX}/fallback`,
     `${API_PREFIX}/solve`,
+    `${API_PREFIX}/report`,
   ]);
 
   const app = Fastify({
@@ -119,6 +123,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         code: reply.statusCode,
         result: req.bc.result,
         level: req.bc.level,
+        item: req.bc.item,
         ms: Math.round(reply.elapsedTime),
       },
       'request',
@@ -207,6 +212,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.options(`${API_PREFIX}/challenge`, preflight);
   app.options(`${API_PREFIX}/fallback`, preflight);
   app.options(`${API_PREFIX}/solve`, preflight);
+  app.options(`${API_PREFIX}/report`, preflight);
   async function preflight(req: FastifyRequest, reply: FastifyReply) {
     if (!allowOrigin(req, reply, allOrigins)) return reply.code(403).send();
     reply.header('access-control-allow-methods', 'GET, POST');
@@ -365,6 +371,60 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       metrics.solveSeconds.observe({ site: site.sitekey, type: c.t }, (iat - c.iat) / 1000);
       req.bc.result = 'ok';
       return { token, expires: Math.floor(exp / 1000) * 1000 };
+    },
+  );
+
+  // "Report this question" (docs/DESIGN.md section 11). The widget sends the seal it holds and the
+  // index of the question; the item id comes out of the seal, so a visitor can report only a
+  // question they were shown, once per challenge and question, while the challenge is valid. Only
+  // the item id is recorded (bc_item_reports_total and the request log line): no answer, token or
+  // address. Items are retired by a person reading these counts, never automatically.
+  app.post<{ Body: ReportRequest }>(
+    `${API_PREFIX}/report`,
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['sealed', 'question'],
+          additionalProperties: false,
+          properties: {
+            sealed: { type: 'string', maxLength: 4096 },
+            question: { type: 'integer', minimum: 0, maximum: 1 },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      reply.header('cache-control', 'no-store');
+      let opened: unknown;
+      try {
+        opened = await unseal(ring, req.body.sealed);
+      } catch (e) {
+        if (e instanceof SealError) return fail(req, reply, 400, 'invalid-input-response');
+        throw e;
+      }
+      if (!isSealedChallenge(opened)) return fail(req, reply, 400, 'invalid-input-response');
+      const c = opened;
+      const site = sites.get(c.sk);
+      if (!site) return fail(req, reply, 403, 'invalid-sitekey');
+      req.bc.site = site.sitekey;
+      if (!allowOrigin(req, reply, site.hostnames))
+        return fail(req, reply, 403, 'hostname-mismatch');
+      const item = c.items[req.body.question];
+      if (item === undefined) return fail(req, reply, 400, 'bad-request');
+      if (now() > c.exp) return fail(req, reply, 400, 'timeout-or-duplicate');
+      let first: boolean;
+      try {
+        first = await store.spend('report', `${c.cid}:${req.body.question}`, c.exp);
+      } catch (err) {
+        req.log.error({ err: String(err) }, 'spent store unavailable');
+        return fail(req, reply, 503, 'store-unavailable');
+      }
+      // A second report of the same question is accepted and not counted, so a retry is harmless.
+      req.bc.item = String(item);
+      req.bc.result = first ? 'ok' : 'duplicate';
+      if (first) metrics.itemReports.inc({ item: metrics.itemLabel(String(item)) });
+      return reply.code(204).send();
     },
   );
 

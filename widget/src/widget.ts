@@ -12,6 +12,10 @@
 // excludes: GET /api/v1/fallback brings a challenge with no question and a harder proof-of-work,
 // which the widget solves and sends with an empty answer. The site's backend sees the pass as
 // `fallback: true` with a low score, and decides what it may do.
+//
+// Under each question, "Report this question" (section 11) sends the seal and the question's index
+// to POST /report, which records only the item id. It does not stop the check: the visitor can
+// still answer, or take the fallback.
 
 import {
   type ChallengeResponse,
@@ -68,6 +72,8 @@ export interface WidgetEvents {
   'bc-rejected': { error: WidgetErrorCode };
   'bc-error': { error: WidgetErrorCode };
   'bc-expired': Record<string, never>;
+  /** A question was reported (index in the challenge on screen). */
+  'bc-reported': { question: number };
 }
 
 type StatusKind = 'busy' | 'ok' | 'error' | 'info';
@@ -239,7 +245,11 @@ export class CaptchaWidget {
       });
       group.addEventListener('keydown', (e) => this.#onKey(e, qi, group));
       const block = el('div', { class: 'q' });
-      block.append(el('p', { class: 'prompt', id: promptId, lang: 'be' }, q.prompt), group);
+      block.append(
+        el('p', { class: 'prompt', id: promptId, lang: 'be' }, q.prompt),
+        group,
+        this.#reportButton(ch, qi, promptId),
+      );
       return block;
     });
     this.#questions.replaceChildren(...blocks);
@@ -255,6 +265,46 @@ export class CaptchaWidget {
       sealed: ch.sealed,
     });
     if (focus) this.#options(this.#questions)[0]?.focus();
+  }
+
+  /**
+   * "Report this question", named together with the prompt so a screen reader says which one.
+   * After a report the button stays (focus is kept) but says thank you and does nothing more.
+   */
+  #reportButton(ch: ChallengeResponse, qi: number, promptId: string): HTMLButtonElement {
+    const label = t(this.lang, 'report');
+    const id = `${promptId}-report`;
+    const button = el(
+      'button',
+      {
+        type: 'button',
+        class: 'alt report',
+        id,
+        lang: label.lang,
+        'aria-describedby': promptId,
+      },
+      label.text,
+    );
+    let sent = false;
+    button.addEventListener('click', async () => {
+      if (sent) return;
+      sent = true;
+      button.setAttribute('aria-disabled', 'true');
+      const gen = this.#gen;
+      let key: StringKey = 'reported';
+      try {
+        await this.#api.report({ sealed: ch.sealed, question: qi });
+        this.#emit('bc-reported', { question: qi });
+      } catch {
+        key = 'reportFailed';
+      }
+      if (gen !== this.#gen) return;
+      const s = t(this.lang, key);
+      button.lang = s.lang;
+      button.textContent = s.text;
+      this.#say(key, key === 'reported' ? 'info' : 'error');
+    });
+    return button;
   }
 
   #options(scope: ParentNode): HTMLElement[] {

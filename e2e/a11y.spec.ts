@@ -1,8 +1,8 @@
 // Accessibility (docs/DESIGN.md section 8.2): an axe-core scan of the demo page with the widget in
-// every state a visitor meets (question, solved, a wrong answer, the fallback, an API that cannot be
-// reached), in the four UI languages and the light, dark and auto themes. Zero violations of
-// WCAG 2.0, 2.1 and 2.2 A and AA is the bar (the "axe clean" condition of phase 1). The widget's
-// shadow root is open, so axe scans inside it.
+// every state a visitor meets (question, solved, a wrong answer, a reported question, the
+// fallback, an API that cannot be reached), in the four UI languages and the light, dark and auto
+// themes. Zero violations of WCAG 2.0, 2.1 and 2.2 A and AA is the bar (the "axe clean" condition
+// of phase 1). The widget's shadow root is open, so axe scans inside it.
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -54,6 +54,16 @@ test('after a wrong answer', async ({ page }) => {
   await q.wrong.click();
   await expect(q.widget.getByRole('status')).toHaveText('Not quite. Here is a new question.');
   await expect(q.widget.getByRole('radio')).toHaveCount(4);
+  await expectNoViolations(page);
+});
+
+test('after reporting the question', async ({ page }) => {
+  await page.goto(demoUrl());
+  const q = await question(page);
+  await q.widget.getByRole('button', { name: 'Report this question' }).click();
+  await expect(q.widget.getByRole('status')).toHaveText(
+    'Thank you. Someone will check this question.',
+  );
   await expectNoViolations(page);
 });
 

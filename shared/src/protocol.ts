@@ -61,6 +61,16 @@ export interface SolveRequest {
   pow: string;
 }
 
+/**
+ * POST /report: the visitor flags one question of the challenge on screen as wrong or offensive
+ * (docs/DESIGN.md section 11). The server reads the item id from the seal and records only that.
+ */
+export interface ReportRequest {
+  sealed: string;
+  /** Index of the question in `display.questions`. */
+  question: number;
+}
+
 export interface SolveOk {
   token: string;
   /** Unix milliseconds. */

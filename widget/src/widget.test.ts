@@ -399,6 +399,89 @@ describe('the fallback: "I cannot do this challenge" (D3 option B)', () => {
   });
 });
 
+describe('"Report this question" (section 11)', () => {
+  const reportButtons = (m: ReturnType<typeof mount>) => m.all('button.report');
+
+  it('puts one report button under each question, described by its prompt', async () => {
+    const api = new FakeApi();
+    api.challengeReplies.push({ status: 200, body: await makeChallenge(2) });
+    const m = mount(api);
+    await m.ready();
+    const buttons = reportButtons(m);
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      t('en', 'report').text,
+      t('en', 'report').text,
+    ]);
+    const prompts = m.all('.prompt');
+    expect(buttons.map((b) => b.getAttribute('aria-describedby'))).toEqual(
+      prompts.map((p) => p.id),
+    );
+    expect(buttons.every((b) => (b as HTMLButtonElement).type === 'button')).toBe(true);
+  });
+
+  it('sends only the seal and the question index, says thank you, and sends once', async () => {
+    const api = new FakeApi();
+    const c = await makeChallenge(2);
+    api.challengeReplies.push({ status: 200, body: c });
+    const m = mount(api);
+    const events: unknown[] = [];
+    m.host.addEventListener('bc-reported', (e) => events.push((e as CustomEvent).detail));
+    await m.ready();
+    const b = reportButtons(m)[1] as HTMLButtonElement;
+    b.click();
+    await until(() => m.status() === t('en', 'reported').text);
+    expect(api.reports().map((r) => [r.method, r.body])).toEqual([
+      ['POST', { sealed: c.sealed, question: 1 }],
+    ]);
+    expect(b.textContent).toBe(t('en', 'reported').text);
+    expect(b.getAttribute('aria-disabled')).toBe('true');
+    expect(events).toEqual([{ question: 1 }]);
+    b.click();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(api.reports()).toHaveLength(1);
+    // The check goes on: the question is still there and can be answered.
+    expect(m.radios()).toHaveLength(8);
+    expect(m.input?.value).toBe('');
+  });
+
+  it('a report that fails says so and does not stop the check', async () => {
+    const api = new FakeApi();
+    api.reportReplies.push({ status: 403, body: { error: 'hostname-mismatch' } });
+    api.solveReplies.push({ status: 200, body: { token: 'tr', expires: Date.now() + 300_000 } });
+    const errors: string[] = [];
+    const m = mount(api, { errorCallback: (c) => errors.push(c) });
+    await m.ready();
+    reportButtons(m)[0]?.click();
+    await until(() => m.status() === t('en', 'reportFailed').text);
+    expect(errors).toEqual([]);
+    m.q('[data-id="r0"]')?.click();
+    await until(() => m.input?.value === 'tr');
+  });
+
+  it('a report answered after the next challenge arrived changes nothing on screen', async () => {
+    const api = new FakeApi();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const slow = api.fetch;
+    const m = mount(api, {
+      fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith('/report')) await gate;
+        return slow(input, init);
+      }) as typeof fetch,
+    });
+    await m.ready();
+    reportButtons(m)[0]?.click();
+    m.w.reset();
+    await until(() => api.challenges().length === 2 && m.radios().length === 4);
+    release();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(m.status()).toBe('');
+    expect(reportButtons(m)[0]?.textContent).toBe(t('en', 'report').text);
+  });
+});
+
 describe('token lifetime and reset', () => {
   it('clears the token when it expires, calls the expired callback, and loads a new challenge', async () => {
     const api = new FakeApi();

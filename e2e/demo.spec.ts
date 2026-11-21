@@ -92,8 +92,10 @@ test('"I cannot do this challenge" by keyboard: a low-score pass marked as a fal
   const q = await question(page);
   const cannot = q.widget.getByRole('button', { name: 'I cannot do this challenge' });
   await expect(cannot).toBeVisible();
-  // Tab past the radio group (one tab stop) to the button, then Enter.
+  // Tab past the radio group (one tab stop) and "Report this question" to the button, then Enter.
   await q.widget.getByRole('radio').first().focus();
+  await page.keyboard.press('Tab');
+  await expect(q.widget.getByRole('button', { name: 'Report this question' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(cannot).toBeFocused();
   await page.keyboard.press('Enter');
@@ -103,6 +105,37 @@ test('"I cannot do this challenge" by keyboard: a low-score pass marked as a fal
   const token = await page.locator('input[name="bc-response"]').inputValue();
   const v = await siteverify(token);
   expect(v).toMatchObject({ success: true, score: 0.3, fallback: true, 'error-codes': [] });
+});
+
+test('"Report this question" by keyboard: the API takes it, the check goes on', async ({
+  page,
+}) => {
+  const reports: number[] = [];
+  page.on('response', (r) => {
+    if (r.url().endsWith('/api/v1/report')) reports.push(r.status());
+  });
+  await page.goto(demoUrl());
+  const q = await question(page);
+  // Found by class: once sent, its name becomes the thank-you text.
+  const report = q.widget.locator('button.report');
+  await expect(report).toHaveAccessibleName('Report this question');
+  await report.focus();
+  await page.keyboard.press('Enter');
+
+  await expect(q.widget.getByRole('status')).toHaveText(
+    'Thank you. Someone will check this question.',
+  );
+  await expect(report).toBeFocused();
+  await expect(report).toHaveAccessibleName('Thank you. Someone will check this question.');
+  await expect(report).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('#events')).toContainText('reported');
+  expect(reports).toEqual([204]);
+
+  // The question can still be answered.
+  await q.right.click();
+  await expect(q.widget.getByRole('status')).toHaveText('Done');
+  const token = await page.locator('input[name="bc-response"]').inputValue();
+  expect((await siteverify(token)).success).toBe(true);
 });
 
 test('the page says clearly when the API cannot be reached', async ({ page }) => {

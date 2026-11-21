@@ -542,6 +542,7 @@ Redis: the key's TTL). At 100 solves a minute that is a few thousand rows.
 | `POST /api/v1/solve` | widget | `{sealed, answer, pow}` (`answer` is an option id, two ids, or text) | `200 {token, expires}` or `422 {error, next}` with a new challenge |
 | `POST /api/v1/siteverify` | site backend | form or JSON `{secret, response, remoteip?, sitekey?, action?}` (`action`, if sent, must equal the token's) | `{success, challenge_ts, hostname, score, action, fallback, "error-codes": []}` (reCAPTCHA-shaped; `fallback` is true for a pass from `/fallback`) |
 | `GET /api/v1/fallback` | widget | `sitekey`, `lang`, `action` | the accessible alternative (section 6.3, D3 option B): a challenge of `type: "fallback"` with no question and a PoW two levels harder, under the same rate limit; solved through `/solve` with `answer: []` for a pass with `score` 0.3 and `fallback: true` |
+| `POST /api/v1/report` | widget | `{sealed, question}` (the seal the widget holds and the index of a question in it) | `204`, also for a repeat; the server opens the seal and records only that question's item id (`bc_item_reports_total{item}` and the log line), once per challenge and question; `400` for a seal that does not open, a question the challenge does not have or an expired challenge (section 11) |
 | `GET /widget.js`, `/widget.worker.js` | browser | | the widget build in the image (`BC_WIDGET_DIR`), checked against its `sri.json` at start; `Cache-Control: public, max-age=600`, an ETag (the SRI hash) with `304` on `If-None-Match`, readable from any origin without credentials (for `crossorigin="anonymous"`); each release publishes the hashes (`widget-sri.json`) |
 | `GET /healthz` | operator | | `{ok, pack_version, store}` |
 | `GET /metrics` | operator, bound to a separate port | | Prometheus text |
@@ -550,7 +551,7 @@ Errors use stable codes: `invalid-sitekey`, `invalid-secret`, `invalid-input-res
 `timeout-or-duplicate`, `hostname-mismatch`, `rate-limited`, `bad-pow`, `wrong-answer`,
 `action-mismatch` (siteverify only).
 
-**CORS**: `challenge` and `solve` answer only the origins listed for the site key; `siteverify`
+**CORS**: `challenge`, `solve`, `fallback` and `report` answer only the origins listed for the site key; `siteverify`
 sends no CORS headers (server-to-server only).
 
 ### 5.2 Configuration
@@ -609,6 +610,8 @@ several replicas.
 - **Logs** carry the time, endpoint, site key, result code, level and duration. **No IP address,
   no user agent, no answer text.** The rate bucket is an HMAC under a key that rotates every day
   and is never written to disk, so counters cannot be linked across days.
+- A report ("Report this question", section 11) stores only the item id: no answer, no token, no
+  IP address, no text from the visitor.
 - This lets a site say in its privacy notice that the CAPTCHA processes the IP address only
   transiently, in memory, for abuse prevention, and stores no personal data: a strong GDPR
   position, and the main reason to choose this over a cloud CAPTCHA. (The site's own counsel
@@ -618,7 +621,8 @@ several replicas.
 
 Prometheus metrics: `bc_challenges_total{site,type,level}`, `bc_solves_total{site,type,result}`,
 `bc_siteverify_total{site,result}`, `bc_rate_limited_total{site}`, `bc_pow_level` histogram,
-`bc_solve_seconds` histogram (time to answer), `bc_render_seconds` histogram. A sudden rise in
+`bc_solve_seconds` histogram (time to answer), `bc_render_seconds` histogram,
+`bc_item_answers_total{item,result}` and `bc_item_reports_total{item}`. A sudden rise in
 `level` or in `wrong-answer` on one site is an attack in progress; `timeout-or-duplicate` at
 `siteverify` is replay or a slow form. The demo page shows these counters live.
 
@@ -861,7 +865,7 @@ each site can run its own container, and a small VPS can host a shared one.
 | Key leaked | anyone can mint tokens | keys outside the image; `bc-admin keys rotate` with two-key overlap; documented incident steps |
 | A VLM solves everything | the language layer is no barrier | expected and published; the PoW and rate limits remain; the site adds its own signals |
 | Farms | humans solve for bots | cost per solve only; nothing in this design stops a farm, and the docs say so |
-| Ambiguous or wrong item | real visitors fail | two reviews per item; a "report this question" link in the widget that sends only the item id; `wrong-answer` rate per item in metrics, so an item that people fail is retired |
+| Ambiguous or wrong item | real visitors fail | two reviews per item; a "Report this question" link under each question in the widget (implemented: it sends the seal and the question index to `POST /api/v1/report`, and the server records only the item id, counted once per challenge and question in `bc_item_reports_total`; a person reads the counts and retires items, never automatically); `wrong-answer` rate per item in metrics, so an item that people fail is retired |
 | Offensive item slips through | reputational harm, a site removes the widget | stop-list, two reviews, the report link, fast retire through a pack update |
 | People who do not read Belarusian are blocked | real visitors on a Belarusian site who read only Russian or English | fallback B; `ru`/`en` UI explains the exit; the site chooses types (D9) |
 | PoW too slow on old phones | visitors wait seconds | `max_level` per site; level falls back as the rate drops; the bench measures time on a low-end phone profile |

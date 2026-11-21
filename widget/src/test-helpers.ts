@@ -54,14 +54,16 @@ export interface Recorded {
 export type Reply = { status: number; body?: unknown } | 'network-error';
 
 /**
- * fetch() for /api/v1/challenge, /api/v1/fallback and /api/v1/solve. Each endpoint answers from
- * its queue; an empty challenge (fallback) queue makes a fresh one-question (fallback) challenge.
+ * fetch() for /api/v1/challenge, /api/v1/fallback, /api/v1/solve and /api/v1/report. Each endpoint answers from
+ * its queue; an empty challenge (fallback) queue makes a fresh one-question (fallback) challenge,
+ * and an empty report queue answers 204.
  */
 export class FakeApi {
   readonly calls: Recorded[] = [];
   readonly challengeReplies: Reply[] = [];
   readonly fallbackReplies: Reply[] = [];
   readonly solveReplies: Reply[] = [];
+  readonly reportReplies: Reply[] = [];
 
   readonly fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
@@ -75,8 +77,11 @@ export class FakeApi {
       reply = this.fallbackReplies.shift() ?? { status: 200, body: await makeFallback() };
     } else if (url.pathname.endsWith('/solve')) {
       reply = this.solveReplies.shift() ?? { status: 500, body: { error: 'bad-request' } };
+    } else if (url.pathname.endsWith('/report')) {
+      reply = this.reportReplies.shift() ?? { status: 204 };
     }
     if (!reply || reply === 'network-error') throw new TypeError('Failed to fetch');
+    if (reply.status === 204) return new Response(null, { status: 204 });
     return new Response(JSON.stringify(reply.body ?? {}), {
       status: reply.status,
       headers: { 'content-type': 'application/json' },
@@ -89,6 +94,10 @@ export class FakeApi {
 
   challenges(): Recorded[] {
     return this.calls.filter((c) => c.url.pathname.endsWith('/challenge'));
+  }
+
+  reports(): Recorded[] {
+    return this.calls.filter((c) => c.url.pathname.endsWith('/report'));
   }
 
   fallbacks(): Recorded[] {

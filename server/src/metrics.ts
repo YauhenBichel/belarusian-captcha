@@ -12,6 +12,7 @@ export interface Metrics {
   solveSeconds: Histogram<'site' | 'type'>;
   renderSeconds: Histogram<'type'>;
   itemAnswers: Counter<'item' | 'result'>;
+  itemReports: Counter<'item'>;
   /**
    * The `item` label for an item id: the id itself for the first `maxItemLabels` distinct ids,
    * then "other". Keeps bc_item_answers_total bounded however large the pack grows, while the
@@ -80,6 +81,12 @@ export function createMetrics(opts: { defaults?: boolean; maxItemLabels?: number
       name: 'bc_item_answers_total',
       help: `Answers per content item (right or wrong-answer), to retire items people fail; item="other" past ${maxItemLabels} distinct items`,
       labelNames: ['item', 'result'],
+      registers,
+    }),
+    itemReports: new Counter({
+      name: 'bc_item_reports_total',
+      help: `Questions visitors reported as wrong or offensive, per content item; item="other" past ${maxItemLabels} distinct items`,
+      labelNames: ['item'],
       registers,
     }),
     itemLabel(item: string): string {

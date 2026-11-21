@@ -57,7 +57,11 @@ its value to `POST /api/v1/siteverify` with the secret.
 `data-*-callback` name global functions. Error codes are the API's (`invalid-sitekey`,
 `rate-limited`, `hostname-mismatch`, ...) plus `network-error` (the API cannot be reached),
 `bad-response` and `pow-failed`. The host element also receives `bc-challenge`, `bc-solved`,
-`bc-rejected`, `bc-error` and `bc-expired` events (`CustomEvent`, not bubbling).
+`bc-rejected`, `bc-error`, `bc-expired` and `bc-reported` events (`CustomEvent`, not bubbling).
+
+Under each question is a "Report this question" button. It sends the challenge's seal and the
+question's index to `POST /api/v1/report`, once; the server records only the item id. A report
+never stops the check and never calls `errorCallback`; `bc-reported` carries `{question}`.
 
 ## The worker and the page's origin
 
