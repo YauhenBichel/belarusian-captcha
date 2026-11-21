@@ -1,5 +1,6 @@
 # The demo stack: `docker compose up --build`, then open http://localhost:3000/ (Express),
-# http://localhost:3001/ (Fastify) or http://localhost:3002/ (Flask).
+# http://localhost:3001/ (Fastify), http://localhost:3002/ (Flask) or http://localhost:3003/
+# (FastAPI).
 #
 #   keys          makes the sealing key file on the data volume on the first start, then exits
 #   api           the verify API (the server image from ./Dockerfile), http://localhost:8080
@@ -8,6 +9,7 @@
 #   demo-fastify  the same contract on Fastify (demo/backends/contract.ts), http://localhost:3001
 #   demo-flask    the same contract on Flask with the Python SDK (demo/backends/python_contract.py),
 #                 http://localhost:3002
+#   demo-fastapi  the same contract on FastAPI with the Python SDK, http://localhost:3003
 #
 # A LOCAL DEMO, not a deployment: everything listens on 127.0.0.1 only, the content is the
 # SYNTHETIC test pack, and the demo site's secret is a published demo value (demo/compose/
@@ -106,6 +108,23 @@ services:
       BC_SECRET: compose-demo-secret-not-real
     ports:
       - "127.0.0.1:3002:3002"
+
+  demo-fastapi:
+    <<: *hardening
+    image: belarusian-captcha-demo-fastapi:compose
+    build:
+      context: .
+      dockerfile: demo/backends/fastapi/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BC_API_URL: http://api:8080
+      BC_SITEKEY: demo-sitekey-0001
+      # The published demo secret, as for the Express service above.
+      BC_SECRET: compose-demo-secret-not-real
+    ports:
+      - "127.0.0.1:3003:3003"
 
 volumes:
   data:

@@ -6,7 +6,8 @@
 //   docker compose up -d --build --wait
 //   npx tsc -b --builders 1 shared && node scripts/compose-smoke.ts
 //
-//   BC_DEMO_URL  the demo backend (default http://localhost:3000, Express; Fastify :3001, Flask :3002).
+//   BC_DEMO_URL  the demo backend (default http://localhost:3000, Express; Fastify :3001,
+//                Flask :3002, FastAPI :3003).
 //                CI runs this once per backend.
 //   BC_API_URL   the verify API as the browser reaches it (default http://localhost:8080)
 //
