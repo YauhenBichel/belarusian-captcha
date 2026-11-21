@@ -17,6 +17,9 @@
       "path": "./demo/backends/express"
     },
     {
+      "path": "./demo/backends/fastify"
+    },
+    {
       "path": "./tsconfig.tools.json"
     }
   ]

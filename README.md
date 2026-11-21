@@ -21,7 +21,7 @@ Python, plain PHP, any language over HTTP). The wire format is in
 | [`widget/`](widget) | The browser widget: vanilla TypeScript, Shadow DOM, PoW in a Web Worker, `data-sitekey` embed; 5.7 kB gzipped. |
 | [`sdk/node/`](sdk/node) | The Node SDK, `belarusian-captcha/server`: `verify(token, {secret, url, ...})` for the site's backend; fail closed by default. No runtime dependencies. |
 | [`sdk/python/`](sdk/python) | The Python SDK, `belarusian-captcha` on PyPI: `verify(token, secret=..., url=...)`, Python 3.11+, standard library only. Both SDKs pass the same cases, [`tests/fixtures/siteverify.json`](tests/fixtures/siteverify.json). |
-| [`demo/`](demo) | The static demo page (GitHub Pages), the demo backend ([`demo/backends/express/`](demo/backends/express)) and the Playwright end-to-end tests in [`e2e/`](e2e). |
+| [`demo/`](demo) | The static demo page (GitHub Pages), the demo backends ([`demo/backends/express/`](demo/backends/express) and [`demo/backends/fastify/`](demo/backends/fastify), one contract: [`demo/backends/contract.ts`](demo/backends/contract.ts)) and the Playwright end-to-end tests in [`e2e/`](e2e). |
 
 The only content in the repository is **synthetic test data**
 ([`server/test/fixtures/synthetic-pack.json`](server/test/fixtures/synthetic-pack.json)); the
@@ -33,13 +33,14 @@ reviewed proverb pack comes from the content pipeline and native-speaker review.
 docker compose up --build
 ```
 
-Then open <http://localhost:3000/>, answer the question and submit the form: the demo backend
-checks the token with `siteverify` through the Node SDK and shows the answer; submit again and the
-same token is refused. [`compose.yaml`](compose.yaml) starts the verify API (`:8080`), the demo
-backend (`:3000`) and a one-shot service that makes the sealing keys on the first start. It is a
+Then open <http://localhost:3000/> (Express) or <http://localhost:3001/> (Fastify), answer the
+question and submit the form: the demo backend checks the token with `siteverify` through the Node
+SDK and shows the answer; submit again and the same token is refused. [`compose.yaml`](compose.yaml)
+starts the verify API (`:8080`), the two demo backends (`:3000`, `:3001`) and a one-shot service that makes the sealing keys on the first start. It is a
 **local demo**: it listens on 127.0.0.1 only, serves the synthetic pack, and its site secret is a
 published demo value. `docker compose down -v` removes it with its keys. `scripts/compose-smoke.ts`
-checks the running stack end to end (CI runs it on every pull request).
+checks the running stack end to end, once per backend with `BC_DEMO_URL` (CI runs both on every
+pull request).
 
 ## Development
 
