@@ -1,0 +1,5 @@
+# Runtime dependencies of the Flask demo backend (the Python SDK has none; the image copies it).
+# Regenerate requirements.txt with (versions at least two weeks old):
+#   uv pip compile --universal --python-version 3.13 --generate-hashes --exclude-newer <date two weeks back> requirements.in -o requirements.txt
+flask==3.1.3
+waitress==3.0.2

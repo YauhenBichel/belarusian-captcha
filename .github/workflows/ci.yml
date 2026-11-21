@@ -77,6 +77,35 @@ jobs:
       - name: Unit tests (the cases shared with the Node SDK included)
         run: python -m unittest discover -s tests -v
 
+  demo-flask:
+    name: Flask demo backend (contract tests, Python 3.13)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: demo/backends/flask
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install Flask and waitress, and the SDK's tools (all hash-pinned)
+        run: |
+          python -m pip install --require-hashes -r requirements.txt
+          python -m pip install --require-hashes -r ../../../sdk/python/requirements-dev.txt
+      - name: Lint and format (this backend and the shared Python contract)
+        run: |
+          ruff check . ../python_contract.py
+          ruff format --check . ../python_contract.py
+      - name: Type-check (mypy --strict)
+        run: mypy
+      - name: Contract tests (demo/backends/python_contract.py)
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src:../../../sdk/python/src
+
   e2e:
     name: "e2e: demo page and verify API (Playwright, Chromium, axe)"
     runs-on: ubuntu-latest
@@ -146,6 +175,10 @@ jobs:
         run: node scripts/compose-smoke.ts
         env:
           BC_DEMO_URL: http://localhost:3001
+      - name: Smoke test, Flask backend
+        run: node scripts/compose-smoke.ts
+        env:
+          BC_DEMO_URL: http://localhost:3002
       - name: Restart keeps the keys (no second key file)
         shell: bash
         run: |
@@ -154,6 +187,7 @@ jobs:
           docker compose logs keys | grep -q 'exists, kept'
           node scripts/compose-smoke.ts
           BC_DEMO_URL=http://localhost:3001 node scripts/compose-smoke.ts
+          BC_DEMO_URL=http://localhost:3002 node scripts/compose-smoke.ts
       - name: Logs on failure
         if: failure()
         run: docker compose logs --no-color

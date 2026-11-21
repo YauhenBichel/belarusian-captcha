@@ -1,6 +1,6 @@
 # The demo site of compose.yaml only: the demo page served by the demo backends on
-# http://localhost:3000 (Express) and http://localhost:3001 (Fastify). Not a deployment example:
-# see server/sites.example.yaml for that.
+# http://localhost:3000 (Express), http://localhost:3001 (Fastify) and http://localhost:3002
+# (Flask). Not a deployment example: see server/sites.example.yaml for that.
 #
 # The secret is a fixed, published, low-entropy demo value, "compose-demo-secret-not-real";
 # secret_sha256 is its SHA-256 and compose.yaml hands the same value to the demo backends. It is
@@ -11,7 +11,14 @@ sites:
   - sitekey: demo-sitekey-0001
     secret_sha256: "376b1516e907025ba5e8b6f84c2dfbbe73de384656d37ae2f6c479a8c1cf54d9"
     # Plain http is accepted for localhost and 127.0.0.1 only.
-    hostnames: ["localhost:3000", "127.0.0.1:3000", "localhost:3001", "127.0.0.1:3001"]
+    # One origin pair per demo backend: Express :3000, Fastify :3001, Flask :3002.
+    hostnames:
+      - localhost:3000
+      - 127.0.0.1:3000
+      - localhost:3001
+      - 127.0.0.1:3001
+      - localhost:3002
+      - 127.0.0.1:3002
     types: { proverb: 1 }
     script: cyrl
     # A light PoW, so the demo answers fast on any laptop; the protocol is the production one.
