@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`aae7394` on 21 November 2026.
+`ded034c` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -25,7 +25,7 @@ last.
 
 | # | Item | Size | Blocked on |
 |---|---|---|---|
-| H1 | Live monitor runs every 15 min with `BC_LIVE_URL` unset and always passes: deploy an instance and set the variables, or turn the schedule off until there is one | 0.1 | **owner: where an instance runs (D4)** |
+| H1 | Turn the live monitor back on: deploy a public instance, set `BC_LIVE_URL`, `BC_MONITOR_SITEKEY` and `BC_MONITOR_SECRET`, uncomment the schedule in `smoke.yml` and run it once by hand (the schedule is off since #48) | 0.1 | **owner: where an instance runs (D4)** |
 
 ## Later phases (design section 9)
 
@@ -66,3 +66,4 @@ last.
 | `engine-strict=true` in `.npmrc`: `npm ci` on Node < 24 stops with "Unsupported engine" (H3) | #41 |
 | Content pipeline core `content/`: item checks, normaliser port, seed stop-list, `build` → `bc-pack-json-v1` (live items only) with SHA-256, CI `build --check`, a server test loads the synthetic pack; ADR 0001 keeps the pack JSON for phase 1 (B9a) | #43, #44 |
 | Distractor checks: a live item needs 3 shape-matching distractors (word count ±1, other families); `bc_content report` for reviewers with possible variants, pool sizes, stop-list flags and optional `belarusian-verse` spelling and stress flags (B9b) | #46 |
+| Live monitor schedule off until there is an instance; a run without `BC_LIVE_URL` fails instead of passing (H1, first half) | #48 |
