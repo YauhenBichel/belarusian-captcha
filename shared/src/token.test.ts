@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { base64urlDecode, base64urlEncode, fromUtf8, utf8 } from './encoding.js';
 import { KeyRing } from './keys.js';
-import { testMasters, testRing } from './test-helpers.js';
+import { flipLastByte, testMasters, testRing } from './test-helpers.js';
 import { issuePassToken, type PassTokenPayload, verifyPassToken } from './token.js';
 
 const NOW = 1_800_000_000_000;
@@ -38,8 +38,7 @@ describe('pass tokens', () => {
       error: 'invalid-input-response',
     });
     const t = await issuePassToken(ring, payload);
-    const flipped = `${t.slice(0, -2)}${t.endsWith('AA') ? 'BB' : 'AA'}`;
-    expect((await verifyPassToken(ring, flipped, NOW)).ok).toBe(false);
+    expect((await verifyPassToken(ring, flipLastByte(t), NOW)).ok).toBe(false);
   });
 
   it('refuses a token from another key or relabelled kid', async () => {
