@@ -1,5 +1,5 @@
-// The widget's two calls to the verify API (docs/DESIGN.md section 5.1): GET /challenge and
-// POST /solve. No cookies are sent. A network failure (the API cannot be reached, or CORS refused
+// The widget's calls to the verify API (docs/DESIGN.md section 5.1): GET /challenge, GET /fallback
+// (the accessible way through, section 6.3) and POST /solve. No cookies are sent. A network failure (the API cannot be reached, or CORS refused
 // the answer) is told apart from an API error code, so the widget can say which one it was.
 
 import {
@@ -46,15 +46,28 @@ export class ApiClient {
     this.#fetch = fetchImpl;
   }
 
-  async challenge(q: ChallengeQuery): Promise<ChallengeResponse> {
+  challenge(q: ChallengeQuery): Promise<ChallengeResponse> {
+    return this.#get('challenge', q, 'proverb');
+  }
+
+  /** A question-free challenge with a harder proof-of-work, answered with `[]`. */
+  fallback(q: ChallengeQuery): Promise<ChallengeResponse> {
+    return this.#get('fallback', q, 'fallback');
+  }
+
+  async #get(
+    path: 'challenge' | 'fallback',
+    q: ChallengeQuery,
+    type: ChallengeResponse['type'],
+  ): Promise<ChallengeResponse> {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(q)) if (v) params.set(k, v);
-    const res = await this.#send(`${this.#base}${API_PREFIX}/challenge?${params}`, {
+    const res = await this.#send(`${this.#base}${API_PREFIX}/${path}?${params}`, {
       method: 'GET',
     });
     const body = await readJson(res);
     if (!res.ok) throw new ApiError(errorCode(body), res.status);
-    if (!isChallenge(body)) throw new ApiError('bad-response', res.status);
+    if (!isChallenge(body) || body.type !== type) throw new ApiError('bad-response', res.status);
     return body;
   }
 
@@ -103,17 +116,19 @@ function errorCode(body: unknown): WidgetErrorCode {
   return typeof e === 'string' && /^[a-z-]{1,40}$/.test(e) ? (e as ErrorCode) : 'bad-response';
 }
 
+/** A proverb challenge has questions; a fallback challenge has none. */
 export function isChallenge(v: unknown): v is ChallengeResponse {
   if (typeof v !== 'object' || v === null) return false;
   const c = v as Partial<ChallengeResponse>;
   return (
+    (c.type === 'proverb' || c.type === 'fallback') &&
     typeof c.sealed === 'string' &&
     typeof c.expires === 'number' &&
     typeof c.pow?.challenge === 'string' &&
     typeof c.pow.salt === 'string' &&
     typeof c.pow.maxnumber === 'number' &&
     Array.isArray(c.display?.questions) &&
-    c.display.questions.length > 0 &&
+    (c.type === 'fallback' ? c.display.questions.length === 0 : c.display.questions.length > 0) &&
     c.display.questions.every(
       (q) =>
         typeof q?.prompt === 'string' &&

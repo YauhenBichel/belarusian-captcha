@@ -26,6 +26,7 @@ export const CSS = `
 .spin{width:.9rem;height:.9rem;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:bc-spin .8s linear infinite}
 @keyframes bc-spin{to{transform:rotate(360deg)}}
 button{font:inherit;margin-top:.4rem;padding:.3rem .8rem;border:1px solid var(--accent);border-radius:6px;background:transparent;color:var(--accent);cursor:pointer}
+button.alt{display:block;border:none;padding:.2rem 0;color:var(--muted);text-decoration:underline;font-size:.85em}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){.spin{animation:none;border-top-color:var(--line)}}
 @media (forced-colors:active){.bc,.opt{border-color:CanvasText}.opt[aria-checked="true"]{border:3px solid Highlight}.opt[aria-checked="true"]::before{background:Highlight;forced-color-adjust:none}}

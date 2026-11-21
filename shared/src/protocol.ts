@@ -20,7 +20,14 @@ export type ErrorCode =
   | 'action-mismatch'
   | 'store-unavailable';
 
-export type ChallengeType = 'proverb';
+/**
+ * `proverb`: the language challenge. `fallback`: the accessible way through (docs/DESIGN.md section
+ * 6.3, D3 option B): no question, a harder proof-of-work, and a low-score token.
+ */
+export type ChallengeType = 'proverb' | 'fallback';
+
+/** The score of a pass earned by the fallback, without answering a question. */
+export const FALLBACK_SCORE = 0.3;
 
 export interface ProverbOption {
   id: string;
@@ -32,7 +39,7 @@ export interface ProverbQuestion {
   options: ProverbOption[];
 }
 
-/** One question below level 4; two at level 4 and above. */
+/** One question below level 4; two at level 4 and above; none for a `fallback` challenge. */
 export interface ProverbDisplay {
   questions: ProverbQuestion[];
 }
@@ -48,7 +55,7 @@ export interface ChallengeResponse {
 
 export interface SolveRequest {
   sealed: string;
-  /** One option id per question. */
+  /** One option id per question; empty for a `fallback` challenge. */
   answer: string[];
   /** base64 ALTCHA payload. */
   pow: string;
@@ -73,5 +80,7 @@ export interface SiteverifyResponse {
   hostname?: string;
   score?: number;
   action?: string;
+  /** True when the visitor took the fallback (no question answered); the score is then low. */
+  fallback?: boolean;
   'error-codes': ErrorCode[];
 }

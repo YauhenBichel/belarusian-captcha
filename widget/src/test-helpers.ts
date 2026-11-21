@@ -11,13 +11,18 @@ export const TEST_POW_KEY = 'test-pow-key';
 
 let counter = 0;
 
+/** A fallback challenge: no question, a larger proof-of-work. */
+export function makeFallback(maxnumber = 256): Promise<ChallengeResponse> {
+  return makeChallenge(0, maxnumber);
+}
+
 /** A challenge with `questions` questions of four options; the right option id is `r<q>`. */
 export async function makeChallenge(questions = 1, maxnumber = 64): Promise<ChallengeResponse> {
   const n = ++counter;
   const expires = Date.now() + 600_000;
   return {
     sealed: `sealed-${n}`,
-    type: 'proverb',
+    type: questions === 0 ? 'fallback' : 'proverb',
     display: {
       questions: Array.from({ length: questions }, (_, q) => ({
         prompt: `SYNTHETIC prompt ${n}.${q}`,
@@ -49,12 +54,13 @@ export interface Recorded {
 export type Reply = { status: number; body?: unknown } | 'network-error';
 
 /**
- * fetch() for /api/v1/challenge and /api/v1/solve. Each endpoint answers from its queue; an
- * empty challenge queue makes a fresh one-question challenge.
+ * fetch() for /api/v1/challenge, /api/v1/fallback and /api/v1/solve. Each endpoint answers from
+ * its queue; an empty challenge (fallback) queue makes a fresh one-question (fallback) challenge.
  */
 export class FakeApi {
   readonly calls: Recorded[] = [];
   readonly challengeReplies: Reply[] = [];
+  readonly fallbackReplies: Reply[] = [];
   readonly solveReplies: Reply[] = [];
 
   readonly fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -65,6 +71,8 @@ export class FakeApi {
     let reply: Reply | undefined;
     if (url.pathname.endsWith('/challenge')) {
       reply = this.challengeReplies.shift() ?? { status: 200, body: await makeChallenge() };
+    } else if (url.pathname.endsWith('/fallback')) {
+      reply = this.fallbackReplies.shift() ?? { status: 200, body: await makeFallback() };
     } else if (url.pathname.endsWith('/solve')) {
       reply = this.solveReplies.shift() ?? { status: 500, body: { error: 'bad-request' } };
     }
@@ -81,6 +89,10 @@ export class FakeApi {
 
   challenges(): Recorded[] {
     return this.calls.filter((c) => c.url.pathname.endsWith('/challenge'));
+  }
+
+  fallbacks(): Recorded[] {
+    return this.calls.filter((c) => c.url.pathname.endsWith('/fallback'));
   }
 }
 

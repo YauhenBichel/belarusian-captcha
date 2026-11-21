@@ -77,4 +77,22 @@ describe('pass tokens', () => {
     const t = await issuePassToken(ring, { ...payload, v: 2 } as unknown as PassTokenPayload);
     expect((await verifyPassToken(ring, t, NOW)).ok).toBe(false);
   });
+
+  it('carries the fallback flag; a token without it (issued before it existed) still verifies', async () => {
+    const ring = testRing();
+    const fb: PassTokenPayload = { ...payload, score: 0.3, fallback: true };
+    expect(await verifyPassToken(ring, await issuePassToken(ring, fb), NOW)).toEqual({
+      ok: true,
+      payload: fb,
+    });
+    const old = await verifyPassToken(ring, await issuePassToken(ring, payload), NOW);
+    expect(old.ok && old.payload.fallback).toBe(undefined);
+    for (const bad of [false, 'yes', 1]) {
+      const t = await issuePassToken(ring, {
+        ...payload,
+        fallback: bad,
+      } as unknown as PassTokenPayload);
+      expect((await verifyPassToken(ring, t, NOW)).ok).toBe(false);
+    }
+  });
 });

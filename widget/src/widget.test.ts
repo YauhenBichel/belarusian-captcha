@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { t } from './i18n.js';
 import { mainThreadSolver } from './pow.js';
 import { getResponse, optionsFromElement, render, renderAll, reset } from './registry.js';
-import { FakeApi, makeChallenge, powNumber, until } from './test-helpers.js';
+import { FakeApi, makeChallenge, makeFallback, powNumber, until } from './test-helpers.js';
 import { CaptchaWidget, RESPONSE_FIELD, type RenderOptions } from './widget.js';
 
 afterEach(() => {
@@ -295,6 +295,107 @@ describe('failures', () => {
     await until(() => errorCallback.mock.calls.length === 1);
     expect(errorCallback).toHaveBeenCalledWith('pow-failed');
     expect(api.solves()).toHaveLength(0);
+  });
+});
+
+describe('the fallback: "I cannot do this challenge" (D3 option B)', () => {
+  const cannot = (m: ReturnType<typeof mount>) =>
+    m.all('button').find((b) => b.textContent === t('en', 'cannot').text) as
+      | HTMLButtonElement
+      | undefined;
+
+  it('shows the button with a question, keyboard-reachable, and hides it otherwise', async () => {
+    const api = new FakeApi();
+    api.challengeReplies.push('network-error');
+    const m = mount(api);
+    await until(() => m.status() === t('en', 'unreachable').text);
+    expect(cannot(m)?.hidden).toBe(true);
+    m.w.reset();
+    await m.ready();
+    const b = cannot(m);
+    expect(b?.hidden).toBe(false);
+    expect(b?.type).toBe('button');
+    expect(b?.tabIndex).toBe(0);
+    expect(b?.getAttribute('lang')).toBe('en');
+  });
+
+  it('drops the question, solves the harder PoW, sends an empty answer and fills the form', async () => {
+    const api = new FakeApi();
+    api.fallbackReplies.push({ status: 200, body: await makeFallback(256) });
+    api.solveReplies.push({
+      status: 200,
+      body: { token: 'fallback-token', expires: Date.now() + 300_000 },
+    });
+    const callback = vi.fn();
+    const seen: { type: string; questions: number }[] = [];
+    const m = mount(api, { callback, action: 'signup' });
+    m.host.addEventListener('bc-challenge', (e) => seen.push((e as CustomEvent).detail));
+    await m.ready();
+    cannot(m)?.focus();
+    cannot(m)?.click();
+    expect(m.radios()).toHaveLength(0);
+    expect(m.status()).toBe(t('en', 'checkingLonger').text);
+    // Focus stays inside the widget when the button disappears.
+    expect(m.root.activeElement).not.toBeNull();
+    await until(() => m.input?.value === 'fallback-token');
+    expect(callback).toHaveBeenCalledWith('fallback-token');
+    expect(Object.fromEntries(api.fallbacks()[0]?.url.searchParams ?? [])).toEqual({
+      sitekey: 'test-sitekey',
+      lang: 'en',
+      action: 'signup',
+    });
+    const body = solveBody(api, 0);
+    expect(body.answer).toEqual([]);
+    expect(powNumber(body)).toBe(128);
+    expect(seen.map((d) => [d.type, d.questions])).toEqual([
+      ['proverb', 1],
+      ['fallback', 0],
+    ]);
+    expect(m.status()).toBe(t('en', 'done').text);
+    expect(cannot(m)?.hidden).toBe(true);
+  });
+
+  it('a refused fallback is a failure; "Try again" brings a question and the button back', async () => {
+    const api = new FakeApi();
+    api.solveReplies.push({
+      status: 422,
+      body: { error: 'bad-pow', next: await makeFallback() },
+    });
+    const errorCallback = vi.fn();
+    const m = mount(api, { errorCallback });
+    await m.ready();
+    cannot(m)?.click();
+    await until(() => errorCallback.mock.calls.length === 1);
+    expect(errorCallback).toHaveBeenCalledWith('bad-pow');
+    expect(m.status()).toBe(t('en', 'failed').text);
+    expect(cannot(m)?.hidden).toBe(true);
+    m.q<HTMLButtonElement>('button')?.click();
+    await m.ready();
+    expect(cannot(m)?.hidden).toBe(false);
+    expect(api.challenges()).toHaveLength(2);
+  });
+
+  it('the fallback endpoint failing is reported like any other', async () => {
+    const api = new FakeApi();
+    api.fallbackReplies.push({ status: 429, body: { error: 'rate-limited' } });
+    const m = mount(api);
+    await m.ready();
+    cannot(m)?.click();
+    await until(() => m.status() === t('en', 'rateLimited').text);
+    expect(api.solves()).toHaveLength(0);
+  });
+
+  it('a pick no longer counts once the fallback has started', async () => {
+    const api = new FakeApi();
+    api.solveReplies.push({ status: 200, body: { token: 'fb', expires: Date.now() + 300_000 } });
+    const m = mount(api);
+    await m.ready();
+    const radio = m.radios()[1];
+    cannot(m)?.click();
+    radio?.click();
+    await until(() => m.input?.value === 'fb');
+    expect(api.solves()).toHaveLength(1);
+    expect(solveBody(api, 0).answer).toEqual([]);
   });
 });
 

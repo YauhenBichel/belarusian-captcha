@@ -59,6 +59,7 @@ describe('verify', () => {
       hostname: 'site-a.test',
       action: 'login',
       challenge_ts: '2026-11-20T12:00:00.000Z',
+      fallback: false,
       error_codes: [],
       unavailable: false,
     });
@@ -121,6 +122,30 @@ describe('verify', () => {
       fetch: f.fetch,
     });
     expect(r).toEqual({ success: false, error_codes: ['rate-limited'], unavailable: false });
+  });
+
+  it('passes on a fallback pass, which a minScore above 0.3 refuses', async () => {
+    const f = fakeFetch(() => json(200, { ...OK, score: 0.3, fallback: true }));
+    const r = await verify('tok', { secret: SECRET, url: URL_BASE, fetch: f.fetch });
+    expect(r).toMatchObject({ success: true, score: 0.3, fallback: true });
+    const strict = await verify('tok', {
+      secret: SECRET,
+      url: URL_BASE,
+      minScore: 0.5,
+      fetch: f.fetch,
+    });
+    expect(strict).toMatchObject({
+      success: false,
+      fallback: true,
+      error_codes: ['score-below-threshold'],
+    });
+  });
+
+  it('reads only a literal true as a fallback', async () => {
+    const f = fakeFetch(() => json(200, { ...OK, fallback: 'true' }));
+    expect((await verify('tok', { secret: SECRET, url: URL_BASE, fetch: f.fetch })).fallback).toBe(
+      false,
+    );
   });
 
   it('applies minScore', async () => {

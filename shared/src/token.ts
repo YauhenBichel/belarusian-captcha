@@ -15,8 +15,10 @@ export interface PassTokenPayload {
   sitekey: string;
   hostname: string;
   action: string;
-  /** 1 for a solved language challenge; lower for a PoW-only fallback (later). */
+  /** 1 for a solved language challenge; FALLBACK_SCORE for the PoW-only fallback. */
   score: number;
+  /** Present and true only for a fallback pass. Absent in tokens issued before it existed. */
+  fallback?: true;
   /** Issued at, unix seconds. */
   iat: number;
   /** Expires at, unix seconds. */
@@ -51,6 +53,7 @@ function isPayload(v: unknown): v is PassTokenPayload {
     typeof p.hostname === 'string' &&
     typeof p.action === 'string' &&
     typeof p.score === 'number' &&
+    (p.fallback === undefined || p.fallback === true) &&
     Number.isSafeInteger(p.iat) &&
     Number.isSafeInteger(p.exp)
   );
