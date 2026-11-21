@@ -9,6 +9,8 @@ coverage/
 bc-keys*.json
 keys.json
 sites.yaml
+# ...except the compose demo's: a hash of a published demo secret, needed by a fresh checkout
+!demo/compose/sites.yaml
 # Python
 __pycache__/
 .venv/
