@@ -11,6 +11,9 @@
       "path": "./widget"
     },
     {
+      "path": "./sdk/node"
+    },
+    {
       "path": "./tsconfig.tools.json"
     }
   ]
