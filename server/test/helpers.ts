@@ -3,6 +3,8 @@
 
 import { readFileSync } from 'node:fs';
 import {
+  base64urlDecode,
+  base64urlEncode,
   type ChallengeResponse,
   encodePowSolution,
   hexToBytes,
@@ -41,6 +43,18 @@ export async function site(overrides: Partial<SiteConfig> = {}): Promise<SiteCon
     challengeTtlS: 600,
     ...overrides,
   };
+}
+
+/**
+ * Tampers with a seal or token: flips one bit of the last segment's decoded bytes. Same as
+ * shared/src/test-helpers.ts (tested there), which the shared package does not export. Editing the
+ * base64url text instead can decode to the same bytes (BACKLOG H4).
+ */
+export function flipLastByte(dotted: string): string {
+  const cut = dotted.lastIndexOf('.') + 1;
+  const bytes = base64urlDecode(dotted.slice(cut));
+  bytes[bytes.length - 1] = (bytes[bytes.length - 1] as number) ^ 0x01;
+  return dotted.slice(0, cut) + base64urlEncode(bytes);
 }
 
 export function testRing(): KeyRing {

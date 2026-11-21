@@ -2,6 +2,7 @@ import type { ChallengeResponse, SiteverifyResponse } from '@belarusian-captcha/
 import { describe, expect, it } from 'vitest';
 import type { SpentStore } from '../src/store.js';
 import {
+  flipLastByte,
   getChallenge,
   harness,
   ORIGIN,
@@ -188,8 +189,7 @@ describe('POST /solve', () => {
   it('rejects a tampered seal and a malformed body', async () => {
     const h = await harness();
     const c = await challenge(h);
-    const parts = c.sealed.split('.');
-    const tampered = { ...c, sealed: `${parts[0]}.${parts[1]}.${(parts[2] ?? '').slice(0, -2)}AA` };
+    const tampered = { ...c, sealed: flipLastByte(c.sealed) };
     const res = await solve(h, tampered, { pow: await powFor(c) });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: 'invalid-input-response' });
@@ -304,7 +304,7 @@ describe('POST /siteverify', () => {
   it('refuses a forged token and a missing response', async () => {
     const h = await harness();
     const token = await passToken(h);
-    const forged = `${token.slice(0, -4)}AAAA`;
+    const forged = flipLastByte(token);
     expect((await siteverify(h, forged)).json()['error-codes']).toEqual(['invalid-input-response']);
     expect((await siteverify(h, '')).json()['error-codes']).toEqual(['invalid-input-response']);
     // A token from another server's keys is not authentic here.
