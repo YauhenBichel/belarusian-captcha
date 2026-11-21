@@ -1,0 +1,73 @@
+# The demo stack: `docker compose up --build`, then open http://localhost:3000/.
+#
+#   keys  makes the sealing key file on the data volume on the first start, then exits
+#   api   the verify API (the server image from ./Dockerfile), http://localhost:8080
+#   demo  the Express demo backend: serves the demo page and checks its form's token with
+#         belarusian-captcha/server, as a site's backend would
+#
+# A LOCAL DEMO, not a deployment: everything listens on 127.0.0.1 only, the content is the
+# SYNTHETIC test pack, and the demo site's secret is a published demo value (demo/compose/
+# sites.yaml). The sealing keys are made per volume and never leave it. For a real deployment
+# follow the README's "Run with Docker" with your own sites.yaml, keys and pack.
+#
+# `docker compose down -v` removes the volume: the keys and the spent-token store.
+
+name: belarusian-captcha
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  keys:
+    <<: *hardening
+    image: belarusian-captcha-server:compose
+    build: .
+    command: ["/compose/init-keys.mjs"]
+    environment:
+      BC_KEYS_FILE: /data/bc-keys.json
+    volumes:
+      - ./demo/compose/init-keys.mjs:/compose/init-keys.mjs:ro
+      - data:/data
+    restart: "no"
+
+  api:
+    <<: *hardening
+    image: belarusian-captcha-server:compose
+    depends_on:
+      keys:
+        condition: service_completed_successfully
+    environment:
+      BC_KEYS_FILE: /data/bc-keys.json
+      BC_PACK: /etc/bc/pack.json
+      BC_SITES: /etc/bc/sites.yaml
+    volumes:
+      - ./demo/compose/sites.yaml:/etc/bc/sites.yaml:ro
+      - ./server/test/fixtures/synthetic-pack.json:/etc/bc/pack.json:ro
+      - data:/data
+    # The browser calls the API directly (the widget); /metrics (9464) stays on the compose network.
+    ports:
+      - "127.0.0.1:8080:8080"
+    stop_grace_period: 15s
+
+  demo:
+    <<: *hardening
+    image: belarusian-captcha-demo-express:compose
+    build:
+      context: .
+      dockerfile: demo/backends/express/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BC_API_URL: http://api:8080
+      BC_SITEKEY: demo-sitekey-0001
+      # The published demo secret of demo/compose/sites.yaml. A real backend reads its secret from
+      # a secret store (BC_SECRET_FILE), never from a file in git.
+      BC_SECRET: compose-demo-secret-not-real
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  data:

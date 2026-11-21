@@ -37,6 +37,7 @@
     "shared",
     "server",
     "widget",
-    "sdk/node"
+    "sdk/node",
+    "demo/backends/express"
   ]
 }

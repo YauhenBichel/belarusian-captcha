@@ -814,8 +814,12 @@ live metrics; it runs from `docker compose up` with a demo site key. A public de
 **[done in part]** `demo/` today: one proverb widget (the only type the server has), its events and
 the decoded token payload in the "what the server sees" panel, settings for the API, the site key,
 the language and the theme, and a plain banner when the API cannot be reached. It is published to
-GitHub Pages by `pages.yml`; with no API deployed, the public page shows that banner. Not yet: the
-other two types, the live metrics, `docker compose up`.
+GitHub Pages by `pages.yml`; with no API deployed, the public page shows that banner.
+`docker compose up` (root `compose.yaml`) runs the API and the Express demo backend
+(`demo/backends/express`), which serves the page, checks the form's token with `siteverify`
+through the Node SDK and shows the answer; CI checks it end to end with `scripts/compose-smoke.ts`
+(accepted once, replay refused). Not yet: the other two types, the live metrics, the Fastify,
+Flask and FastAPI demo backends.
 
 ---
 

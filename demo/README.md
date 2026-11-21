@@ -16,14 +16,15 @@ npm run build:demo        # builds the widget, then demo/dist
 node demo/serve.mjs       # http://localhost:4173/ (PORT, HOST)
 ```
 
-`demo/build.mjs` reads three optional environment variables (in the Pages workflow, repository
-variables of the same names):
+`demo/build.mjs` reads four optional environment variables (the first three, in the Pages
+workflow, are repository variables of the same names):
 
 | Variable | Default | What |
 | --- | --- | --- |
 | `BC_DEMO_SITE_URL` | `https://yauhenbichel.github.io/belarusian-captcha/` | canonical URL, sitemap, Open Graph |
 | `BC_DEMO_API` | `https://captcha.yserver.invalid` | the default API base URL; a placeholder that never resolves until an API is deployed |
 | `BC_DEMO_SITEKEY` | `demo-sitekey-0001` | the default site key |
+| `BC_DEMO_BACKEND` | empty | a same-origin path (`/demo/submit`) the form posts to when a demo backend serves the page; empty on Pages, where the page only shows the token a backend would receive |
 
 The page's address overrides them: `?api=…&sitekey=…&lang=en|be|be-Latn|ru&theme=auto|light|dark`.
 The API's `sites.yaml` must list the page's host (for Pages, `yauhenbichel.github.io`) in the
@@ -33,6 +34,22 @@ site's `hostnames`.
 
 Run the server as in the root README with a site whose `hostnames` include `localhost:4173`, then
 open `http://localhost:4173/?api=http://localhost:8080&sitekey=<your site key>`.
+
+## With a demo backend: `docker compose up`
+
+[`backends/express/`](backends/express) is a site's backend in a few lines: it serves this page
+(built with `BC_DEMO_BACKEND=/demo/submit`), takes the form at `POST /demo/submit`, checks
+`bc-response` with `verify()` from the Node SDK (`belarusian-captcha/server`, action `demo`) and
+answers `{accepted, verify}`: 200 when accepted, 400 when refused or the token is missing, 503 when
+the verify API cannot be reached (it fails closed). `GET /healthz` is its health check. The root
+[`compose.yaml`](../compose.yaml) runs it with the API; see the root README. Its settings
+(`BC_API_URL`, `BC_SITEKEY`, `BC_SECRET` or `BC_SECRET_FILE`, `BC_DEMO_DIR`, `HOST`, `PORT`) are
+in [`backends/express/src/main.ts`](backends/express/src/main.ts). Fastify, Flask and FastAPI
+backends with the same contract are planned.
+
+[`compose/`](compose) holds the stack's `sites.yaml` (one site, `demo-sitekey-0001`, for
+`localhost:3000`, with a published demo secret: local use only) and `init-keys.mjs`, which makes
+the sealing keys on the first start and keeps them after.
 
 ## Publishing
 

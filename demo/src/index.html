@@ -13,6 +13,8 @@
   <!-- Build-time defaults (demo/build.mjs); ?api= and ?sitekey= override them. -->
   <meta name="bc-demo-api" content="__API__">
   <meta name="bc-demo-sitekey" content="__SITEKEY__">
+  <!-- Empty on GitHub Pages; a path such as /demo/submit when a demo backend serves the page. -->
+  <meta name="bc-demo-backend" content="__BACKEND__">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="belarusian-captcha">
@@ -68,7 +70,7 @@
         repository's SYNTHETIC test pack: placeholder text, not Belarusian proverbs. Reviewed proverbs
         come from the content pipeline and native-speaker review.</p>
       <form id="demo-form" action="#" method="post">
-        <label for="comment">A comment (not sent anywhere)</label>
+        <label for="comment">A comment (never stored)</label>
         <textarea id="comment" name="comment" rows="2"></textarea>
         <div id="captcha"></div>
         <button type="submit">Submit</button>

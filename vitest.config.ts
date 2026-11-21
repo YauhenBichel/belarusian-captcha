@@ -9,6 +9,10 @@ export default defineConfig({
       '@belarusian-captcha/shared': fileURLToPath(
         new URL('./shared/src/index.ts', import.meta.url),
       ),
+      // The demo backends import the Node SDK by its package name; test them against its source.
+      'belarusian-captcha/server': fileURLToPath(
+        new URL('./sdk/node/src/server.ts', import.meta.url),
+      ),
     },
   },
   test: {

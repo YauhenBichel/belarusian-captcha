@@ -141,12 +141,51 @@
   });
 
   // --- the demo form ------------------------------------------------------------------------
-  $('demo-form').addEventListener('submit', (e) => {
+  // With a demo backend (meta bc-demo-backend, set when one serves the page: compose.yaml), the
+  // form posts to it and the page shows what its siteverify call answered. Without one (GitHub
+  // Pages), the page only shows the token a backend would receive.
+  const backend = meta('bc-demo-backend');
+
+  /** One line from the backend's JSON answer (demo/backends/express/src/app.ts). */
+  function verdict(status, body) {
+    const v = body?.verify;
+    if (body?.accepted && v) {
+      return `Accepted by the demo backend: siteverify says success, score ${v.score}, hostname ${v.hostname}${v.fallback ? ', fallback pass' : ''}. Submit again and the same token is refused: it works once.`;
+    }
+    if (v?.unavailable)
+      return 'Refused: the demo backend could not reach the verify API (it fails closed).';
+    if (v)
+      return `Refused by the demo backend: siteverify says ${v.error_codes.join(', ') || 'no'} (HTTP ${status}).`;
+    return `Refused by the demo backend: ${body?.error ?? `HTTP ${status}`}.`;
+  }
+
+  $('demo-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const out = $('submit-result');
-    const token = new FormData(e.currentTarget).get('bc-response');
-    out.textContent = token
-      ? `The form would post bc-response = ${token.slice(0, 32)}… Your backend now calls siteverify with its secret; the token works once, within its lifetime.`
-      : 'No pass token yet: answer the question first.';
+    const form = new FormData(e.currentTarget);
+    const token = form.get('bc-response');
+    if (!token) {
+      out.textContent = 'No pass token yet: answer the question first.';
+      return;
+    }
+    if (!backend) {
+      out.textContent = `The form would post bc-response = ${token.slice(0, 32)}… Your backend now calls siteverify with its secret; the token works once, within its lifetime.`;
+      return;
+    }
+    out.textContent = 'Sending to the demo backend…';
+    try {
+      const res = await fetch(backend, {
+        method: 'POST',
+        body: new URLSearchParams(form),
+        credentials: 'omit',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10000),
+      });
+      const body = await res.json().catch(() => null);
+      out.textContent = verdict(res.status, body);
+      log('backend', `HTTP ${res.status}; ${JSON.stringify(body?.verify ?? body)}`);
+    } catch {
+      out.textContent = 'The demo backend did not answer.';
+    }
   });
 })();
