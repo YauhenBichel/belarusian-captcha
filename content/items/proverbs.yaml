@@ -1,0 +1,27 @@
+# Proverb items: the reviewed source of the content pack (CC BY-SA 4.0, see NOTICE).
+#
+# Rules: docs/DESIGN.md 3.4 (items, review) and 3.5 (what is kept out). Every item enters as
+# `draft` in a pull request; it goes `live` only with two `ok` reviews by different native
+# speakers, recorded by handle, never by name (D5). A retired item stays here so an id never
+# changes meaning. Check and build with `python -m bc_content build` (content/README.md).
+#
+# One item:
+#
+#   - id: pr-0001                    # never reused
+#     family: pr-0001                # variants of one saying share a family (default: the id)
+#     text: "…"                      # the whole proverb, modern spelling
+#     cut: "…"                       # what the visitor sees
+#     ending: "…"                    # the right answer; text = cut + " " + ending
+#     source: { work: "…", page: "…", licence: public-domain }
+#     difficulty: easy               # easy | normal | hard
+#     tags: [everyday]
+#     review:
+#       - { reviewer: handle-a, verdict: ok, date: 2026-12-01 }   # ok | changes | reject
+#       - { reviewer: handle-b, verdict: ok, date: 2026-12-02 }
+#     status: draft                  # draft -> reviewed -> live -> retired
+#     allow_flagged: []              # stop-list stems a reviewer checked and accepted
+#
+# No items yet: the first ones come with B10, once the reviewers are chosen (owner decision D5).
+
+version: "0"
+items: []

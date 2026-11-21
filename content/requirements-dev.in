@@ -1,0 +1,6 @@
+# Checks for CI and local runs. Regenerate requirements-dev.txt with:
+#   the command in the header of requirements-dev.txt (ruff and mypy match sdk/python)
+-r requirements.in
+ruff==0.17.6
+mypy==2.4.1
+types-pyyaml

@@ -30,8 +30,9 @@ What later phases add:
 ## Decision
 
 1. **Phase 1 keeps `bc-pack-json-v1`.** The content pipeline writes exactly that format; the server
-   loader does not change. The pipeline adds top-level fields the server ignores today
-   (`licence`, `attribution`, `built_from`), so the format stays version 1.
+   loader does not change. The pipeline adds fields the server ignores today (top-level
+   `licence` and `attribution`, per item `source` and `licence` for CC BY-SA attribution), so
+   the format stays version 1.
 2. **The pack is built, not edited.** `content/items/proverbs.yaml` is the reviewed source; the
    pack is a build output with a SHA-256 next to it. CI rebuilds the pack and fails when the
    committed pack differs from the build, so the pack never drifts from the reviewed YAML.
