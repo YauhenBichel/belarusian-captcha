@@ -22,11 +22,13 @@
     "//": "tsc 7 builds referenced projects in parallel; one builder keeps shared/ ahead of server/ and the tools project on a clean checkout."
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@biomejs/biome": "2.6.8",
     "@playwright/test": "^1.65.1",
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.1.1",
     "altcha-lib": "2.9.0",
+    "axe-core": "4.14.0",
     "happy-dom": "21.0.4",
     "typescript": "7.0.2",
     "vitest": "5.1.1"

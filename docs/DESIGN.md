@@ -757,8 +757,11 @@ Firefox, Chromium and WebKit matrix.
 **[done in part]** `e2e/demo.spec.ts` runs in CI (the `e2e` job): the verify API from source with the
 SYNTHETIC pack and the built demo page, in Chromium only. It covers load, PoW in the Web Worker,
 answer by mouse and by keyboard only, `siteverify` accepting once and refusing a replay, a wrong
-answer refused, and an unreachable API said plainly. Not yet: themes, languages, axe-core, the
-Firefox and WebKit matrix, and the container instead of the source build.
+answer refused, and an unreachable API said plainly. `e2e/a11y.spec.ts` runs an axe-core scan
+(WCAG 2.0, 2.1 and 2.2 A and AA, zero violations) of the page and the widget's shadow root in every
+state: the question in the four languages and the light, dark and auto themes, solved, after a
+wrong answer, the fallback, and the API down. Not yet: the Firefox and WebKit matrix, and the
+container instead of the source build.
 
 ### 8.3 The bot-resistance benchmark (the acceptance metric)
 
