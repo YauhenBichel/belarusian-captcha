@@ -1,12 +1,16 @@
 name: Live monitor
 
+# OFF until there is a public instance (owner decision D4, BACKLOG H1): the schedule is commented
+# out below, so the monitor runs only when started by hand. To turn it on, set the settings below,
+# uncomment the schedule and run it once by hand.
+#
 # Every 15 minutes: one full pass through the public verify API (healthz, challenge, proof-of-work,
 # solve, siteverify) with scripts/live-monitor.ts, as the monitor site. A failure opens an issue
 # labelled `live-monitor`, or adds a comment to the open one; the next good pass closes it.
 #
 # Settings (repository Settings > Secrets and variables > Actions):
 #   variable BC_LIVE_URL               the public base URL, e.g. https://captcha.example.org
-#                                      (unset: the monitor job is skipped and nothing alerts)
+#                                      (unset: the run fails with "not configured")
 #   variable BC_MONITOR_SITEKEY        the monitor site's key in the server's sites.yaml
 #   secret   BC_MONITOR_SECRET         the monitor site's siteverify secret
 #   secret   LIVE_MONITOR_DEADMAN_URL  optional: a healthchecks-style ping URL; pinged on every
@@ -15,8 +19,8 @@ name: Live monitor
 #                                      no activity for 60 days) is noticed as well
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -33,8 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Explain why nothing ran
-        run: echo "::notice::BC_LIVE_URL is not set; the live monitor is off (see the header of smoke.yml)"
+      - name: Fail, because nothing was checked
+        run: |
+          echo "::error::BC_LIVE_URL is not set, so nothing was checked (see the header of smoke.yml)"
+          exit 1
 
   monitor:
     name: live monitor (challenge, PoW, solve, siteverify)
