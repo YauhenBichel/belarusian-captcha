@@ -3,7 +3,7 @@
 The ordered work for belarusian-captcha. The plan and the reasons are in
 [`docs/DESIGN.md`](docs/DESIGN.md) (phases in section 9, decisions D1–D14 in section 12); this
 file says what is left, in what order, and what is blocked. Last checked against `main` at
-`99c5018` on 21 November 2026.
+`f0f0a3e` on 21 November 2026.
 
 Sizes are working days of engineering. Each item lands as its own branch and PR.
 
@@ -14,15 +14,13 @@ refused, axe is clean, the bench report is committed, and 0.1.0 is on npm, PyPI 
 
 | # | Item | Size | Blocked on | Notes |
 |---|---|---|---|---|
-| B8b | **Fastify demo backend** in `demo/backends/fastify` (npm workspace), a compose service beside Express | 0.25 | | same contract as Express: serves `demo/dist`, `POST /demo/submit`, `GET /healthz`; covered by the compose smoke |
-| B8c | **Flask demo backend** in `demo/backends/flask`, through the Python SDK | 0.25 | | same contract; Python service with its own image |
-| B8d | **FastAPI demo backend** in `demo/backends/fastapi`, through the Python SDK | 0.25 | | same contract; Python service with its own image |
+| B8d | **FastAPI demo backend** in `demo/backends/fastapi`, through the Python SDK | 0.25 | | same contract, tested with `demo/backends/python_contract.py` as Flask is; its own image (as `demo/backends/flask/Dockerfile`), port 3003, a compose service and a CI smoke run |
 | B9 | **Content pipeline** `content/` (Python, uses `belarusian-verse`): items YAML with source and licence, stop-list, distractors, pack build with checksum | 2 | | decide here whether the pack stays JSON (`bc-pack-json-v1`, what the server reads now) or moves to `pack.sqlite` as designed |
 | B10 | **300 reviewed proverbs**, two native-speaker reviews per item, recorded by handle | 10–15 h of reviewers' time | **owner: D5, who the reviewers are** | the critical path of phase 1; start finding reviewers now |
 | B11 | **Bench for proverbs**: guessing, lookup, text LLM; report in `bench/results/` | 1 | B9, a first slice of B10 | design 8.3 |
 | B13 | **Release 0.1.0**: npm and PyPI publish jobs with trusted publishing (OIDC, no tokens), drop `private: true`, tag `v0.1.0` | 0.5 | B1–B12; **owner approves the publish** | GHCR image release already exists (`release.yml`) |
 
-Suggested order: B8b–B8d (no outside dependency); B9 as soon
+Suggested order: B8d (no outside dependency); B9 as soon
 as possible so B10 review can start in parallel; B11 and B13 last.
 
 ## Housekeeping
@@ -65,3 +63,5 @@ as possible so B10 review can start in parallel; B11 and B13 last.
 | `docker compose` demo stack (keys, API, demo backend on 127.0.0.1) and the Express demo backend: token accepted once, replay refused, CI job from a fresh checkout (B8, part 1) | #29, #30 |
 | Docs: `docs/PROTOCOL.md`, `docs/INTEGRATION.md` (Node, Python, plain PHP, raw HTTP, CSP), `docs/THREAT-MODEL.md` (B12) | #32 |
 | Flaky tamper tests: tamper by flipping a decoded byte, not by editing base64url text (H4) | #34 |
+| Fastify demo backend on :3001, one vitest contract suite for both Node backends (`demo/backends/contract.ts`), compose smoke against each backend (B8b) | #36 |
+| Flask demo backend on :3002 through the Python SDK, the contract as a Python unittest mixin (`demo/backends/python_contract.py`), own distroless image, CI job (B8c) | #37 |
