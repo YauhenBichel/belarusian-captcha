@@ -5,6 +5,23 @@
   "//": "private until the 0.1.0 release (design section 9, phase 1); the npm name is free (D14).",
   "description": "belarusian-captcha for Node and bundlers: verify a pass token from your backend (./server), and the browser widget as an ES module (.). No runtime dependencies.",
   "license": "Apache-2.0",
+  "keywords": [
+    "captcha",
+    "belarusian",
+    "belarus",
+    "proof-of-work",
+    "self-hosted",
+    "privacy",
+    "bot-protection",
+    "spam"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YauhenBichel/belarusian-captcha.git",
+    "directory": "sdk/node"
+  },
+  "homepage": "https://yauhenbichel.github.io/belarusian-captcha/",
+  "bugs": "https://github.com/YauhenBichel/belarusian-captcha/issues",
   "type": "module",
   "engines": {
     "node": ">=24"
