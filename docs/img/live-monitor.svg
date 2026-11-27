@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="232" viewBox="0 0 700 232" role="img" aria-label="Terminal: the live monitor passes six steps against a local belarusian-captcha server">
+<title>belarusian-captcha: one full pass against a local server</title>
+<rect width="700" height="232" rx="10" fill="#0d1117"/>
+<circle cx="22" cy="20" r="6" fill="#ff5f56"/><circle cx="42" cy="20" r="6" fill="#ffbd2e"/><circle cx="62" cy="20" r="6" fill="#27c93f"/>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
+<text x="20" y="56" fill="#8b949e">$</text><text x="38" y="56" fill="#e6edf3">node scripts/live-monitor.ts</text>
+<text x="20" y="78" fill="#e6edf3">live monitor: http://127.0.0.1:18080 (site demo-sitekey-0001)</text>
+<text x="20" y="100" fill="#3fb950">ok</text><text x="62" y="100" fill="#e6edf3">healthz</text><text x="250" y="100" fill="#e6edf3" text-anchor="end">25 ms</text><text x="270" y="100" fill="#e6edf3">pack synthetic-0+28ecac6188dc</text>
+<text x="20" y="122" fill="#3fb950">ok</text><text x="62" y="122" fill="#e6edf3">challenge</text><text x="250" y="122" fill="#e6edf3" text-anchor="end">4 ms</text><text x="270" y="122" fill="#e6edf3">1 question(s)</text>
+<text x="20" y="144" fill="#3fb950">ok</text><text x="62" y="144" fill="#e6edf3">answer</text><text x="250" y="144" fill="#e6edf3" text-anchor="end">0 ms</text><text x="270" y="144" fill="#e6edf3">1 answer(s) from the pack</text>
+<text x="20" y="166" fill="#3fb950">ok</text><text x="62" y="166" fill="#e6edf3">pow</text><text x="250" y="166" fill="#e6edf3" text-anchor="end">497 ms</text><text x="270" y="166" fill="#e6edf3">maxnumber 80000</text>
+<text x="20" y="188" fill="#3fb950">ok</text><text x="62" y="188" fill="#e6edf3">solve</text><text x="250" y="188" fill="#e6edf3" text-anchor="end">7 ms</text><text x="270" y="188" fill="#e6edf3">pass token issued</text>
+<text x="20" y="210" fill="#3fb950">ok</text><text x="62" y="210" fill="#e6edf3">siteverify</text><text x="250" y="210" fill="#e6edf3" text-anchor="end">3 ms</text><text x="270" y="210" fill="#e6edf3">success, hostname 127.0.0.1</text>
+</g></svg>

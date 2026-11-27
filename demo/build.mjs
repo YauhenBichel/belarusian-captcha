@@ -67,6 +67,10 @@ mkdirSync(dist, { recursive: true });
 writeFileSync(`${dist}index.html`, fill(readFileSync(`${src}index.html`, 'utf8'), escapeHtml));
 writeFileSync(`${dist}sitemap.xml`, fill(readFileSync(`${src}sitemap.xml`, 'utf8'), escapeHtml));
 writeFileSync(
+  `${dist}llms.txt`,
+  fill(readFileSync(`${src}llms.txt`, 'utf8'), (s) => s),
+);
+writeFileSync(
   `${dist}robots.txt`,
   fill(readFileSync(`${src}robots.txt`, 'utf8'), (s) => s),
 );

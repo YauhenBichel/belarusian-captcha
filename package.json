@@ -3,6 +3,21 @@
   "private": true,
   "description": "Workspace root for belarusian-captcha (not published).",
   "license": "Apache-2.0",
+  "keywords": [
+    "captcha",
+    "belarusian",
+    "belarus",
+    "proof-of-work",
+    "self-hosted",
+    "privacy",
+    "bot-protection",
+    "spam"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YauhenBichel/belarusian-captcha.git"
+  },
+  "homepage": "https://yauhenbichel.github.io/belarusian-captcha/",
   "type": "module",
   "engines": {
     "node": ">=24"

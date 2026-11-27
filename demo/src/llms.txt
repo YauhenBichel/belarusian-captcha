@@ -1,0 +1,21 @@
+# belarusian-captcha
+
+> A self-hosted CAPTCHA in Belarusian: the visitor finishes a proverb, behind an invisible SHA-256 proof-of-work check. You run the verify API yourself; no cookies, no third-party requests, no stored IP addresses. Status: phase 1; only the proverb question type exists and the content is synthetic test data. Nothing is published to npm or PyPI yet.
+
+## Try it
+
+- [Demo page](__SITE_URL__): the widget against a verify API set in the address, with the events and the pass-token payload shown
+- [README](https://github.com/YauhenBichel/belarusian-captcha#readme): what it is, quick start, FAQ
+
+## Docs
+
+- [Integration guide](https://github.com/YauhenBichel/belarusian-captcha/blob/main/docs/INTEGRATION.md): run the API, register a site, add the widget, check the token on your backend
+- [Protocol](https://github.com/YauhenBichel/belarusian-captcha/blob/main/docs/PROTOCOL.md): the wire format of challenge, solve and siteverify
+- [Threat model](https://github.com/YauhenBichel/belarusian-captcha/blob/main/docs/THREAT-MODEL.md): what it stops, what it does not, and its privacy rules
+- [Design](https://github.com/YauhenBichel/belarusian-captcha/blob/main/docs/DESIGN.md): decisions and phases
+- [Widget reference](https://github.com/YauhenBichel/belarusian-captcha/blob/main/widget/README.md): attributes, events, accessibility
+
+## Optional
+
+- [Source code](https://github.com/YauhenBichel/belarusian-captcha)
+- [Licence: Apache-2.0 for code, CC BY-SA 4.0 for content](https://github.com/YauhenBichel/belarusian-captcha/blob/main/NOTICE)
